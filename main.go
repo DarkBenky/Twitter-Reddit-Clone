@@ -603,7 +603,7 @@ func getLikesDislikes(c echo.Context) error {
 	var DislikeCount int
 
 	// print row count
-	fmt.Println(rows.Columns())
+	// fmt.Println(rows.Columns())
 
 	for rows.Next() {
 		var like int
@@ -612,7 +612,7 @@ func getLikesDislikes(c echo.Context) error {
 				"error": "Failed to scan like/dislike data",
 			})
 		}
-		fmt.Println(like, "like")
+		// fmt.Println(like, "like")
 		if like == 1 {
 			LikeCount++
 		} else if like == -1 {
@@ -651,7 +651,7 @@ func like(c echo.Context) error {
 	userId := c.QueryParam("userId")
 
 	// Add debug logging
-	fmt.Printf("Received like request - postId: %s, userId: %s\n", postId, userId)
+	// fmt.Printf("Received like request - postId: %s, userId: %s\n", postId, userId)
 
 	// Convert string IDs to integers for database query
 	postIdInt, err := strconv.Atoi(postId)
