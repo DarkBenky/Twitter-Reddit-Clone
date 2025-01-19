@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-faker/faker/v4"
@@ -17,8 +18,8 @@ import (
 var db *sql.DB
 
 const (
-	testing = true
-	testingLogin = "test"
+	testing         = true
+	testingLogin    = "test"
 	testingPassword = "test"
 )
 
@@ -47,19 +48,26 @@ type Comment struct {
 }
 
 type Category struct {
-	IDCategory   int    `json:"idCategory"`
-	Name         string `json:"name"`
-	Description  string `json:"description"`
+	IDCategory  int    `json:"idCategory"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 type LikeDislike struct {
-	IDLikeDislike int `json:"idLikeDislike"`
-	IDPost        int `json:"idPost"`
-	IDUser        int `json:"idUser"`
-	Like          bool `json:"like"`
+	IDLikeDislike int  `json:"idLikeDislike"`
+	IDPost        int  `json:"idPost"`
+	IDUser        int  `json:"idUser"`
+	Like          int `json:"like"`
 }
 
-	
+type Message struct {
+	IDMessage  int    `json:"idMessage"`
+	SenderID   int    `json:"senderID"`
+	ReceiverID int    `json:"receiverID"`
+	Content    string `json:"content"`
+	CreatedAt  string `json:"created_at"`
+}
+
 func GetAllPosts(c echo.Context) error {
 	// Get all posts from the database
 	query := `SELECT idPost, content_text, created_at, userID FROM posts`
@@ -229,43 +237,43 @@ func GetAllUsers(c echo.Context) error {
 }
 
 func AddPost(c echo.Context) error {
-    type PostRequest struct {
-        UserID      string `json:"userID"`
-        ContentText string `json:"contentText"`
-    }
+	type PostRequest struct {
+		UserID      string `json:"userID"`
+		ContentText string `json:"contentText"`
+	}
 
-    post := new(PostRequest)
-    if err := c.Bind(post); err != nil {
+	post := new(PostRequest)
+	if err := c.Bind(post); err != nil {
 		fmt.Println(err)
-        return c.JSON(http.StatusBadRequest, echo.Map{
-            "error": "Invalid request data",
-        })
-    }
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Invalid request data",
+		})
+	}
 
-    if post.UserID == "" || post.ContentText == "" {
-        return c.JSON(http.StatusBadRequest, echo.Map{
-            "error": "UserID and content text are required",
-        })
-    }
+	if post.UserID == "" || post.ContentText == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "UserID and content text are required",
+		})
+	}
 
-    query := `INSERT INTO posts (userID, content_text, created_at) VALUES (?, ?, ?)`
-    result, err := db.Exec(query, post.UserID, post.ContentText, time.Now().Format(time.RFC3339))
-    if err != nil {
-        return c.JSON(http.StatusInternalServerError, echo.Map{
-            "error": "Failed to insert post: " + err.Error(),
-        })
-    }
+	query := `INSERT INTO posts (userID, content_text, created_at) VALUES (?, ?, ?)`
+	result, err := db.Exec(query, post.UserID, post.ContentText, time.Now().Format(time.RFC3339))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to insert post: " + err.Error(),
+		})
+	}
 
-    rowsAffected, err := result.RowsAffected()
-    if err != nil || rowsAffected == 0 {
-        return c.JSON(http.StatusInternalServerError, echo.Map{
-            "error": "Failed to confirm post insertion",
-        })
-    }
+	rowsAffected, err := result.RowsAffected()
+	if err != nil || rowsAffected == 0 {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to confirm post insertion",
+		})
+	}
 
-    return c.JSON(http.StatusOK, echo.Map{
-        "message": "Post added successfully",
-    })
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "Post added successfully",
+	})
 }
 
 func AddComment(c echo.Context) error {
@@ -313,104 +321,103 @@ func AddComment(c echo.Context) error {
 	})
 }
 
-
 // In main.go, update the EditPost function:
 func EditPost(c echo.Context) error {
-    // Create struct for request body
-    type EditRequest struct {
-        PostID      string `json:"postID"`
-        ContentText string `json:"contentText"`
-    }
+	// Create struct for request body
+	type EditRequest struct {
+		PostID      string `json:"postID"`
+		ContentText string `json:"contentText"`
+	}
 
-    // Parse request body
-    var req EditRequest
-    if err := c.Bind(&req); err != nil {
-        return c.JSON(http.StatusBadRequest, echo.Map{
-            "error": "Invalid request format",
-        })
-    }
+	// Parse request body
+	var req EditRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Invalid request format",
+		})
+	}
 
-    // Validate input
-    if req.PostID == "" || req.ContentText == "" {
-        return c.JSON(http.StatusBadRequest, echo.Map{
-            "error": "Post ID and content text are required",
-        })
-    }
+	// Validate input
+	if req.PostID == "" || req.ContentText == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Post ID and content text are required",
+		})
+	}
 
-    // Update post in database
-    query := `UPDATE posts SET content_text = ? WHERE idPost = ?`
-    result, err := db.Exec(query, req.ContentText, req.PostID)
-    if err != nil {
-        return c.JSON(http.StatusInternalServerError, echo.Map{
-            "error": "Failed to update post: " + err.Error(),
-        })
-    }
+	// Update post in database
+	query := `UPDATE posts SET content_text = ? WHERE idPost = ?`
+	result, err := db.Exec(query, req.ContentText, req.PostID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to update post: " + err.Error(),
+		})
+	}
 
-    // Verify update
-    rowsAffected, err := result.RowsAffected()
-    if err != nil {
-        return c.JSON(http.StatusInternalServerError, echo.Map{
-            "error": "Failed to confirm update",
-        })
-    }
-    if rowsAffected == 0 {
-        return c.JSON(http.StatusNotFound, echo.Map{
-            "error": "Post not found",
-        })
-    }
+	// Verify update
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to confirm update",
+		})
+	}
+	if rowsAffected == 0 {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"error": "Post not found",
+		})
+	}
 
-    return c.JSON(http.StatusOK, echo.Map{
-        "message": "Post updated successfully",
-    })
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "Post updated successfully",
+	})
 }
 
 // In main.go, update the DeletePost function:
 func DeletePost(c echo.Context) error {
-    // Create struct for request body
-    type DeleteRequest struct {
-        PostID string `json:"postID"`
-    }
+	// Create struct for request body
+	type DeleteRequest struct {
+		PostID string `json:"postID"`
+	}
 
-    // Parse request body
-    var req DeleteRequest
-    if err := c.Bind(&req); err != nil {
-        return c.JSON(http.StatusBadRequest, echo.Map{
-            "error": "Invalid request format",
-        })
-    }
+	// Parse request body
+	var req DeleteRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Invalid request format",
+		})
+	}
 
-    // Validate postID
-    if req.PostID == "" {
-        return c.JSON(http.StatusBadRequest, echo.Map{
-            "error": "Post ID is required",
-        })
-    }
+	// Validate postID
+	if req.PostID == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Post ID is required",
+		})
+	}
 
-    // Delete post from database
-    query := `DELETE FROM posts WHERE idPost = ?`
-    result, err := db.Exec(query, req.PostID)
-    if err != nil {
-        return c.JSON(http.StatusInternalServerError, echo.Map{
-            "error": "Failed to delete post: " + err.Error(),
-        })
-    }
+	// Delete post from database
+	query := `DELETE FROM posts WHERE idPost = ?`
+	result, err := db.Exec(query, req.PostID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to delete post: " + err.Error(),
+		})
+	}
 
-    // Verify deletion
-    rowsAffected, err := result.RowsAffected()
-    if err != nil {
-        return c.JSON(http.StatusInternalServerError, echo.Map{
-            "error": "Failed to confirm deletion",
-        })
-    }
-    if rowsAffected == 0 {
-        return c.JSON(http.StatusNotFound, echo.Map{
-            "error": "Post not found",
-        })
-    }
+	// Verify deletion
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to confirm deletion",
+		})
+	}
+	if rowsAffected == 0 {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"error": "Post not found",
+		})
+	}
 
-    return c.JSON(http.StatusOK, echo.Map{
-        "message": "Post deleted successfully",
-    })
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "Post deleted successfully",
+	})
 }
 
 func GetPostById(c echo.Context) error {
@@ -429,8 +436,6 @@ func GetPostById(c echo.Context) error {
 	return c.JSON(http.StatusOK, post)
 }
 
-
-
 func main() {
 
 	// Open a connection to the SQLite database
@@ -446,6 +451,9 @@ func main() {
 	createUsersTable(database)
 	createPostsTable(database)
 	createCommentsTable(database)
+	createCategoriesTable(database)
+	createLikesDislikesTable(database)
+	createMessagesTable(database)
 
 	// Generate random users, posts, and comments
 	// n := 10 // Number of random entries to generate
@@ -467,11 +475,11 @@ func main() {
 	e := echo.New()
 
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-        AllowOrigins: []string{"http://localhost:8080", "http://127.0.0.1:8080"},
-        AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
-        AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
-        AllowCredentials: true,
-    }))
+		AllowOrigins:     []string{"http://localhost:8080", "http://127.0.0.1:8080"},
+		AllowMethods:     []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
+		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+		AllowCredentials: true,
+	}))
 
 	e.GET("/posts", GetAllPosts)
 	e.GET("/comments", GetAllCommentsToPost)
@@ -485,13 +493,17 @@ func main() {
 	e.PUT("/editPost", EditPost)
 	e.POST("/login", Login)
 	e.PUT("/userEdit", UpdateUser)
+	e.GET("/likesDislikes", getLikesDislikes)
+	e.GET("/userLikeDislike", getUserLikeDislikeForPost)
+	e.GET("/like", like)
+	e.GET("/dislike", dislike)
 	e.Logger.Fatal(e.Start(":5050"))
 
 }
 
 func InsertTestUser() {
 	_, err := db.Exec(`INSERT INTO users (username, displayName, email, password) VALUES (?, ?, ?, ?)`,
-		testingLogin, testingLogin,testingLogin + "@gmail.com", testingPassword)
+		testingLogin, testingLogin, testingLogin+"@gmail.com", testingPassword)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -515,66 +527,304 @@ func InsertTestUser() {
 }
 
 type UpdateUserRequest struct {
-    ID          int    `json:"id"`
-    Username    string `json:"username"`
-    DisplayName string `json:"displayName"`
-    Email       string `json:"email"`
+	ID          int    `json:"id"`
+	Username    string `json:"username"`
+	DisplayName string `json:"displayName"`
+	Email       string `json:"email"`
 }
 
 func UpdateUser(c echo.Context) error {
-    var req UpdateUserRequest
-    if err := c.Bind(&req); err != nil {
-        return c.JSON(http.StatusBadRequest, echo.Map{
-            "error": "Invalid request payload",
-        })
-    }
+	var req UpdateUserRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Invalid request payload",
+		})
+	}
 
+	// Update the user in the database
+	stmt, err := db.Prepare("UPDATE users SET username = ?, displayName = ?, email = ? WHERE idUser = ?")
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Database error",
+		})
+	}
+	defer stmt.Close()
 
-    // Update the user in the database
-    stmt, err := db.Prepare("UPDATE users SET username = ?, displayName = ?, email = ? WHERE idUser = ?")
-    if err != nil {
-        return c.JSON(http.StatusInternalServerError, echo.Map{
-            "error": "Database error",
-        })
-    }
-    defer stmt.Close()
+	res, err := stmt.Exec(req.Username, req.DisplayName, req.Email, req.ID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to update user",
+		})
+	}
 
-    res, err := stmt.Exec(req.Username, req.DisplayName, req.Email, req.ID)
-    if err != nil {
-        return c.JSON(http.StatusInternalServerError, echo.Map{
-            "error": "Failed to update user",
-        })
-    }
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Database error",
+		})
+	}
 
-    rowsAffected, err := res.RowsAffected()
-    if err != nil {
-        return c.JSON(http.StatusInternalServerError, echo.Map{
-            "error": "Database error",
-        })
-    }
+	if rowsAffected == 0 {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"error": "User not found",
+		})
+	}
 
-    if rowsAffected == 0 {
-        return c.JSON(http.StatusNotFound, echo.Map{
-            "error": "User not found",
-        })
-    }
+	// Retrieve the updated user
+	var updatedUser User
+	err = db.QueryRow("SELECT idUser, username, displayName, email FROM users WHERE idUser = ?", req.ID).
+		Scan(&updatedUser.IDUser, &updatedUser.Username, &updatedUser.DisplayName, &updatedUser.Email)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to retrieve updated user",
+		})
+	}
 
-    // Retrieve the updated user
-    var updatedUser User
-    err = db.QueryRow("SELECT idUser, username, displayName, email FROM users WHERE idUser = ?", req.ID).
-        Scan(&updatedUser.IDUser, &updatedUser.Username, &updatedUser.DisplayName, &updatedUser.Email)
-    if err != nil {
-        return c.JSON(http.StatusInternalServerError, echo.Map{
-            "error": "Failed to retrieve updated user",
-        })
-    }
-
-    return c.JSON(http.StatusOK, updatedUser)
+	return c.JSON(http.StatusOK, updatedUser)
 }
 
 type LoginRequest struct {
-    Username string `json:"username"`
-    Password string `json:"password"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func getLikesDislikes(c echo.Context) error {
+	postId := c.QueryParam("idPost")
+	query := `SELECT like FROM likes_dislikes WHERE idPost = ?`
+	rows, err := db.Query(query, postId)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to query likes/dislikes",
+		})
+	}
+	defer rows.Close()
+
+	var LikeCount int
+	var DislikeCount int
+
+	// print row count
+	fmt.Println(rows.Columns())
+
+	for rows.Next() {
+		var like int
+		if err := rows.Scan(&like); err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"error": "Failed to scan like/dislike data",
+			})
+		}
+		fmt.Println(like, "like")
+		if like == 1 {
+			LikeCount++
+		} else if like == -1 {
+			DislikeCount++
+		}
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{
+		"likes":    LikeCount,
+		"dislikes": DislikeCount,
+	})
+}
+
+func getUserLikeDislikeForPost(c echo.Context) error {
+	postId := c.QueryParam("idPost")
+	userId := c.QueryParam("userID")
+
+	// fmt.Println("Received request for user like/dislike")
+	// fmt.Printf("Post ID: %s, User ID: %s\n", postId, userId)
+
+	query := `SELECT idLikeDislike, idPost, idUser, like FROM likes_dislikes WHERE idPost = ? AND idUser = ?`
+	row := db.QueryRow(query, postId, userId)
+
+	var likeDislike LikeDislike
+	if err := row.Scan(&likeDislike.IDLikeDislike, &likeDislike.IDPost, &likeDislike.IDUser, &likeDislike.Like); err != nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"notLikedDisliked": "User has not liked/disliked this post",
+		})
+	}
+
+	return c.JSON(http.StatusOK, likeDislike)
+}
+
+func like(c echo.Context) error {
+	postId := c.QueryParam("postId")
+	userId := c.QueryParam("userId")
+
+	// Add debug logging
+	fmt.Printf("Received like request - postId: %s, userId: %s\n", postId, userId)
+
+	// Convert string IDs to integers for database query
+	postIdInt, err := strconv.Atoi(postId)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Invalid post ID format",
+		})
+	}
+
+	userIdInt, err := strconv.Atoi(userId)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Invalid user ID format",
+		})
+	}
+
+	// Check if post exists
+	var exists bool
+	err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM posts WHERE idPost = ?)", postIdInt).Scan(&exists)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Database error",
+		})
+	}
+	if !exists {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"error": "Post not found",
+		})
+	}
+
+	// Check if user exists
+	err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE idUser = ?)", userIdInt).Scan(&exists)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Database error",
+		})
+	}
+	if !exists {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"error": "User not found",
+		})
+	}
+
+	// Check existing like/dislike
+	query := `SELECT idLikeDislike, like FROM likes_dislikes WHERE idPost = ? AND idUser = ?`
+	row := db.QueryRow(query, postIdInt, userIdInt)
+
+	var likeDislike LikeDislike
+	err = row.Scan(&likeDislike.IDLikeDislike, &likeDislike.Like)
+
+	if err == sql.ErrNoRows {
+		// No existing like/dislike, insert new like
+		query = `INSERT INTO likes_dislikes (idPost, idUser, like) VALUES (?, ?, 1)`
+		_, err := db.Exec(query, postIdInt, userIdInt)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"error": "Failed to add like",
+			})
+		}
+		return c.JSON(http.StatusOK, echo.Map{
+			"message": "Like added",
+		})
+	}
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Database error",
+		})
+	}
+
+	if likeDislike.Like == 1 {
+		// Already liked, remove it
+		query = `DELETE FROM likes_dislikes WHERE idPost = ? AND idUser = ?`
+		_, err := db.Exec(query, postIdInt, userIdInt)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"error": "Failed to remove like",
+			})
+		}
+		return c.JSON(http.StatusOK, echo.Map{
+			"message": "Like removed",
+		})
+	} else {
+		// Was disliked, update to like
+		query = `UPDATE likes_dislikes SET like = 1 WHERE idPost = ? AND idUser = ?`
+		_, err := db.Exec(query, postIdInt, userIdInt)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"error": "Failed to update to like",
+			})
+		}
+		return c.JSON(http.StatusOK, echo.Map{
+			"message": "Changed from dislike to like",
+		})
+	}
+}
+
+func dislike(c echo.Context) error {
+	postId := c.QueryParam("postId")
+	userId := c.QueryParam("userId")
+
+	// Check if post exists
+	query := `SELECT idPost FROM posts WHERE idPost = ?`
+	row := db.QueryRow(query, postId)
+	var post Post
+	if err := row.Scan(&post.IDPost); err != nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"error": "Post not found",
+		})
+	}
+
+	// Check if user exists
+	query = `SELECT idUser FROM users WHERE idUser = ?`
+	row = db.QueryRow(query, userId)
+	var user User
+	if err := row.Scan(&user.IDUser); err != nil {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"error": "User not found",
+		})
+	}
+
+	// Check existing like/dislike
+	query = `SELECT idLikeDislike, like FROM likes_dislikes WHERE idPost = ? AND idUser = ?`
+	row = db.QueryRow(query, postId, userId)
+
+	var likeDislike LikeDislike
+	err := row.Scan(&likeDislike.IDLikeDislike, &likeDislike.Like)
+
+	if err == sql.ErrNoRows {
+		// No existing like/dislike, insert new dislike
+		query = `INSERT INTO likes_dislikes (idPost, idUser, like) VALUES (?, ?, -1)`
+		_, err := db.Exec(query, postId, userId)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"error": "Failed to add dislike",
+			})
+		}
+		return c.JSON(http.StatusOK, echo.Map{
+			"message": "Dislike added",
+		})
+	}
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Database error",
+		})
+	}
+
+	if likeDislike.Like == -1 {
+		// Already disliked, remove it
+		query = `DELETE FROM likes_dislikes WHERE idPost = ? AND idUser = ?`
+		_, err := db.Exec(query, postId, userId)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"error": "Failed to remove dislike",
+			})
+		}
+		return c.JSON(http.StatusOK, echo.Map{
+			"message": "Dislike removed",
+		})
+	} else {
+		// Was liked, update to dislike
+		query = `UPDATE likes_dislikes SET like = -1 WHERE idPost = ? AND idUser = ?`
+		_, err := db.Exec(query, postId, userId)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"error": "Failed to update to dislike",
+			})
+		}
+		return c.JSON(http.StatusOK, echo.Map{
+			"message": "Changed from like to dislike",
+		})
+	}
 }
 
 func Login(c echo.Context) error {
@@ -625,13 +875,16 @@ func createUsersTable(db *sql.DB) {
 
 // Create Posts table
 func createPostsTable(db *sql.DB) {
+	fmt.Println("Creating posts table")
 	createTableSQL := `CREATE TABLE IF NOT EXISTS posts (
-		"idPost" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,		
-		"content_text" TEXT,
-		"created_at" TEXT,
-		"userID" INTEGER,
-		FOREIGN KEY(userID) REFERENCES users(idUser)
-	);`
+        "idPost" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,        
+        "content_text" TEXT,
+        "created_at" TEXT,
+        "userID" INTEGER,
+        "categoryID" INTEGER,
+        FOREIGN KEY ("userID") REFERENCES users(idUser),
+        FOREIGN KEY ("categoryID") REFERENCES categories(idCategory)
+    );`
 	statement, err := db.Prepare(createTableSQL)
 	if err != nil {
 		log.Fatal(err)
@@ -642,6 +895,7 @@ func createPostsTable(db *sql.DB) {
 
 // Create Comments table
 func createCommentsTable(db *sql.DB) {
+	fmt.Println("Creating comments table")
 	createTableSQL := `CREATE TABLE IF NOT EXISTS comments (
 		"idComment" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,		
 		"idPost" INTEGER,
@@ -657,6 +911,56 @@ func createCommentsTable(db *sql.DB) {
 	}
 	statement.Exec()
 	fmt.Println("Comments table created")
+}
+
+func createCategoriesTable(db *sql.DB) {
+	fmt.Println("Creating categories table")
+	createTableSQL := `CREATE TABLE IF NOT EXISTS categories (
+		"idCategory" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,		
+		"name" TEXT,
+		"description" TEXT
+	);`
+	statement, err := db.Prepare(createTableSQL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	statement.Exec()
+	fmt.Println("Categories table created")
+}
+
+func createLikesDislikesTable(db *sql.DB) {
+	createTableSQL := `CREATE TABLE IF NOT EXISTS likes_dislikes (
+		"idLikeDislike" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,		
+		"idPost" INTEGER,
+		"idUser" INTEGER,
+		"like" INTEGER,
+		FOREIGN KEY(idPost) REFERENCES posts(idPost),
+		FOREIGN KEY(idUser) REFERENCES users(idUser)
+	);`
+	statement, err := db.Prepare(createTableSQL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	statement.Exec()
+	fmt.Println("Likes/Dislikes table created")
+}
+
+func createMessagesTable(db *sql.DB) {
+	createTableSQL := `CREATE TABLE IF NOT EXISTS messages (
+		"idMessage" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,		
+		"senderID" INTEGER,
+		"receiverID" INTEGER,
+		"content" TEXT,
+		"created_at" TEXT,
+		FOREIGN KEY(senderID) REFERENCES users(idUser),
+		FOREIGN KEY(receiverID) REFERENCES users(idUser)
+	);`
+	statement, err := db.Prepare(createTableSQL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	statement.Exec()
+	fmt.Println("Messages table created")
 }
 
 // insertRandomUsers generates and inserts synthetic user data into the database for testing purposes.

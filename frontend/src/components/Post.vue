@@ -7,29 +7,39 @@
         </div>
 
         <!-- Post Content -->
-        <div class="post-content" @click="toggleComments">
+        <div class="post-content">
             <p>{{ post.content_text }}</p>
-            <button class="toggle-comments">
-                {{ isActive ? 'Hide Comments' : 'Show Comments' }}
+
+            <div class="like-dislike">
+                <button @click="like" v-if="liked" class="liked">
+                    <span>Likes: {{ likes }}</span>
+                </button>
+                <button @click="like" v-else class="not-liked">
+                    <span>Likes: {{ likes }}</span>
+                </button>
+                <button @click="dislike" v-if="disliked" class="disliked">
+                    <span>Dislikes: {{ dislikes }}</span>
+                </button>
+                <button @click="dislike" v-else class="not-disliked">
+                    <span>Dislikes: {{ dislikes }}</span>
+                </button>
+            </div>
+
+            <button class="toggle-comments" @click="toggleComments">
+                {{ isActive ? "Hide Comments" : "Show Comments" }}
             </button>
             <button class="toggle-comments" @click="navigateToPost">
                 Navigate to Post
             </button>
             <div class="edit-delete-options" v-if="post.userID === $store.state.userId">
-                <button class="toggle-delete" @click="deletePost">
-                    Delete
-                </button>
-                <button class="toggle-edit" @click="editPost">
-                    Edit
-                </button>
+                <button class="toggle-delete" @click="deletePost">Delete</button>
+                <button class="toggle-edit" @click="editPost">Edit</button>
             </div>
         </div>
 
         <!-- Comments Section -->
         <div v-if="isActive" class="comments-section">
-            <div v-if="loadingComments" class="loading">
-                Loading comments...
-            </div>
+            <div v-if="loadingComments" class="loading">Loading comments...</div>
             <div v-else-if="commentsError" class="error">
                 {{ commentsError }}
             </div>
@@ -49,7 +59,9 @@
                             </div>
                             <div class="comment-content">
                                 <p>{{ comment.content_text }}</p>
-                                <small class="comment-date">{{ formatDate(comment.created_at) }}</small>
+                                <small class="comment-date">{{
+                                    formatDate(comment.created_at)
+                                }}</small>
                             </div>
                         </li>
                     </ul>
@@ -79,6 +91,10 @@ export default {
 
     data() {
         return {
+            likes: 0,
+            dislikes: 0,
+            liked: false,
+            disliked: false,
             isActive: false,
             comments: [],
             loadingComments: false,
@@ -88,12 +104,106 @@ export default {
         };
     },
 
+    async created() {
+        this.getLikesDislikes();
+        this.getUserLikeDislike();
+    },
+
     methods: {
         editPost() {
             this.$router.push(`/edit/${this.post.idPost}`);
         },
 
-        // In Post.vue, update the deletePost method:
+        async getLikesDislikes() {
+            try {
+                const response = await axios.get(`${this.baseUrl}/likesDislikes`, {
+                    params: {
+                        idPost: this.post.idPost
+                    }
+                });
+                this.likes = response.data.likes || 0;
+                this.dislikes = response.data.dislikes || 0;
+            } catch (error) {
+                console.error("Error:", error);
+                this.likes = 0;
+                this.dislikes = 0;
+                this.liked = false;
+                this.disliked = false;
+            }
+        },
+
+        async like() {
+            try {
+                if (this.$store.state.userId === -1) {
+                    alert("Please login to like posts");
+                    return;
+                }
+
+                const response = await axios.get(`${this.baseUrl}/like`, {
+                    params: {
+                        postId: this.post.idPost,
+                        userId: this.$store.state.userId
+                    }
+                });
+
+                if (response.status === 200) {
+                    await this.getLikesDislikes();
+                    await this.getUserLikeDislike();
+                }
+            } catch (error) {
+                console.error("Error liking post:", error);
+            }
+        },
+
+        async dislike() {
+            try {
+                if (this.$store.state.userId === -1) {
+                    alert("Please login to dislike posts");
+                    return;
+                }
+
+                const response = await axios.get(`${this.baseUrl}/dislike`, {
+                    params: {
+                        postId: this.post.idPost,
+                        userId: this.$store.state.userId
+                    }
+                });
+
+                if (response.status === 200) {
+                    await this.getLikesDislikes();
+                    await this.getUserLikeDislike();
+                }
+            } catch (error) {
+                console.error("Error disliking post:", error);
+            }
+        },
+
+        async getUserLikeDislike() {
+            try {
+                if (this.$store.state.userId === -1) return;
+
+                const response = await axios.get(`${this.baseUrl}/userLikeDislike`, {
+                    params: {
+                        idPost: this.post.idPost,
+                        userID: this.$store.state.userId
+                    }
+                });
+
+                const userLikeDislike = response.data;
+                if (userLikeDislike.like === 1) {
+                    this.liked = true;
+                    this.disliked = false;
+                } if (userLikeDislike.like === -1) {
+                    this.liked = false;
+                    this.disliked = true;
+                }
+            } catch (error) {
+                this.liked = false;
+                this.disliked = false;
+                console.error("Error getting user like/dislike status:", error);
+            }
+        },
+
         async deletePost(event) {
             event.stopPropagation(); // Prevent event bubbling
             try {
@@ -185,7 +295,39 @@ export default {
 };
 </script>
 
+
+
 <style scoped>
+
+
+.liked {
+    border: 1px solid #666;
+    background-color: #28a745;
+    color: white;
+    border-radius: 3px;
+}
+
+.not-liked {
+    border: 1px solid #666;
+    background-color: #fff;
+    color: #333;
+    border-radius: 3px;
+}
+
+.disliked {
+    border: 1px solid #666;
+    background-color: #dc3545;
+    color: white;
+    border-radius: 3px;
+}
+
+.not-disliked {
+    border: 1px solid #666;
+    background-color: #fff;
+    color: #333;
+    border-radius: 3px;
+}
+
 .add-comment-section {
     display: flex;
     flex-direction: column;
