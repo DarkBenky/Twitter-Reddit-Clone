@@ -456,7 +456,9 @@ func main() {
 	createMessagesTable(database)
 
 	// Generate random users, posts, and comments
-	// n := 10 // Number of random entries to generate
+	// n := 100 // Number of random entries to generate
+
+	// InsertRandomMessages(n)
 
 	// fmt.Printf("Generating %d random users...\n", n)
 	// insertRandomUsers(n)
@@ -497,6 +499,7 @@ func main() {
 	e.GET("/userLikeDislike", getUserLikeDislikeForPost)
 	e.GET("/like", like)
 	e.GET("/dislike", dislike)
+	e.GET("/messages", getMessages)
 	e.Logger.Fatal(e.Start(":5050"))
 
 }
@@ -963,6 +966,41 @@ func createMessagesTable(db *sql.DB) {
 	fmt.Println("Messages table created")
 }
 
+func getMessages(c echo.Context) error {
+	senderId := c.QueryParam("senderID")
+	receiverId := c.QueryParam("receiverID")
+
+	query := `SELECT idMessage, senderID, receiverID, content, created_at FROM messages WHERE senderID = ? AND receiverID = ? OR senderID = ? AND receiverID = ? ORDER BY created_at` 
+	rows, err := db.Query(query, senderId, receiverId, receiverId, senderId)
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to query messages",
+		})
+	}
+
+	defer rows.Close()
+
+	var messages []Message
+	for rows.Next() {
+		var message Message
+		if err := rows.Scan(&message.IDMessage, &message.SenderID, &message.ReceiverID, &message.Content, &message.CreatedAt); err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"error": "Failed to scan message data",
+			})
+		}
+		messages = append(messages, message)
+	}
+
+	if err := rows.Err(); err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Error iterating over rows",
+		})
+	}
+
+	return c.JSON(http.StatusOK, messages)
+}
+
 // insertRandomUsers generates and inserts synthetic user data into the database for testing purposes.
 // It creates 'n' users with randomly generated usernames, display names, and emails using the faker library.
 //
@@ -992,6 +1030,23 @@ func insertRandomUsers(n int) {
 		}
 	}
 	fmt.Printf("Inserted %d random users.\n", n)
+}
+
+func InsertRandomMessages(n int) {
+	Users := GetUsers()
+
+	for i := 0; i < n; i++ {
+		senderID := Users[rand.Intn(len(Users))].IDUser
+		receiverID := Users[rand.Intn(len(Users))].IDUser
+		content := faker.Sentence()
+		createdAt := time.Now().Format(time.RFC3339)
+		_, err := db.Exec(`INSERT INTO messages (senderID, receiverID, content, created_at) VALUES (?, ?, ?, ?)`,
+			senderID, receiverID, content, createdAt)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	fmt.Printf("Inserted %d random messages.\n", n)
 }
 
 // insertRandomPosts generates and inserts synthetic post data for existing users in the database.

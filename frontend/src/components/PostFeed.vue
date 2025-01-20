@@ -112,11 +112,6 @@ export default {
                 console.error('Error fetching users:', error);
             }
         },
-
-        handleSort() {
-            // The computed property will handle the sorting
-            // This method exists for potential future sort-related functionality
-        }
     }
 };
 </script>

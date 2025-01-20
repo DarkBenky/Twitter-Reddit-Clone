@@ -1,7 +1,7 @@
 <template>
     <div :class="['user-profile', { 'compact': compact, 'expanded': expanded }]">
         <div class="profile-content">
-            <div class="avatar">
+            <div class="avatar" @click="moveToDMs">
                 {{ initials }}
             </div>
             <div class="user-info">
@@ -78,6 +78,11 @@ export default {
     },
 
     methods: {
+        moveToDMs() {
+            console.log('Moving to DMs with user:', this.user)
+            this.$router.push('dm/' + this.user.idUser)
+        },
+
         async getUserPosts() {
             if (!this.expanded) return  // Prevent fetching if not expanded
             try {
