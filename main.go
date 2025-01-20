@@ -1042,6 +1042,46 @@ func SendMessages(c echo.Context) error {
 	})
 }
 
+func GetUserConversations(c echo.Context) error {
+	userID := c.QueryParam("userID")
+
+	type Conversation struct {
+		SenderID   int `json:"senderID"`
+		ReceiverID int `json:"receiverID"`
+	}
+	
+
+	query := `SELECT DISTINCT senderID, receiverID FROM messages WHERE senderID = ? OR receiverID = ?`
+	rows, err := db.Query(query, userID, userID)
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to query conversations",
+		})
+	}
+
+	defer rows.Close()
+
+	var conversations []Conversation
+	for rows.Next() {
+		var conversation Conversation
+		if err := rows.Scan(&conversation.SenderID, &conversation.ReceiverID); err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"error": "Failed to scan conversation data",
+			})
+		}
+		conversations = append(conversations, conversation)
+	}
+
+	if err := rows.Err(); err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Error iterating over rows",
+		})
+	}
+
+	return c.JSON(http.StatusOK, conversations)
+}
+
 
 // insertRandomUsers generates and inserts synthetic user data into the database for testing purposes.
 // It creates 'n' users with randomly generated usernames, display names, and emails using the faker library.
