@@ -6,13 +6,16 @@
             <div v-for="message in messages" 
                  :key="message.idMessage" 
                  :class="['message', message.senderID === $store.state.userId ? 'sent' : 'received']">
-                <div class="message-content">{{ message.content }}</div>
+                <div class="message-content">
+                    <UserProfile :user="getUserWithId(message.senderID)" />
+                    {{ message.content }}
+                </div>
                 <div class="message-timestamp">{{ message.created_at }}</div>
             </div>
         </div>
         <div class="container">
-            <p v-if="messages.length === 0">No messages yet</p>
-            <button class="scroll-btn" @click="scrollToBottom" v-if="messages.length > 0">Scroll to bottom</button>
+            <p v-if="!messages">No messages yet</p>
+            <button class="scroll-btn" @click="scrollToBottom" v-if="messages">Scroll to bottom</button>
         </div>
         <div class="message-input-container">
             <input 
@@ -30,12 +33,14 @@
 <script>
 import axios from 'axios';
 import NavBar from './NavBar.vue';
+import UserProfile from './UserProfile.vue';
 
 export default {
     name: 'UserConversation',
 
     components: {
-        NavBar
+        NavBar,
+        UserProfile
     },
 
     data() {
@@ -50,6 +55,11 @@ export default {
     },
 
     methods: {
+        getUserWithId(id) {
+            console.log(this.$store.state.users);
+            return this.$store.state.users.find(user => user.idUser === id);
+        },
+
         async getMessages() {
             try {
                 const response = await axios.get(`${this.baseUrl}/messages`, {
@@ -95,6 +105,7 @@ export default {
     mounted() {
         this.getMessages();
         this.startPolling();
+        this.currentUser = this.$store.state.currentUser;
     },
 
     beforeUnmount() {
@@ -125,7 +136,6 @@ export default {
 }
 
 .user-conversation {
-    max-width: 800px;
     margin: 0 auto;
     padding: 20px;
     height: calc(100vh - 60px);

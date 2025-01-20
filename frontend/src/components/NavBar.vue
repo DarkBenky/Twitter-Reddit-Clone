@@ -7,6 +7,9 @@
       <router-link to="/add_post" class="nav-link">
         Add Post
       </router-link>
+      <router-link v-if="this.$store.state.userId != -1" to="/dms" class="nav-link">
+        Direct Messages
+      </router-link>
     </div>
     <div class="nav-right">
       <router-link

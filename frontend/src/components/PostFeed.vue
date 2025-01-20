@@ -108,6 +108,7 @@ export default {
             try {
                 const response = await axios.get(`${this.baseUrl}/users`);
                 this.users = response.data;
+                this.$store.state.users = response.data;
             } catch (error) {
                 console.error('Error fetching users:', error);
             }

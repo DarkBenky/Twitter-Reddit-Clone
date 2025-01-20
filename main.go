@@ -501,6 +501,7 @@ func main() {
 	e.GET("/dislike", dislike)
 	e.GET("/messages", getMessages)
 	e.POST("/sendMessage", SendMessages)
+	e.GET("/conversations", GetUserConversations)
 	e.Logger.Fatal(e.Start(":5050"))
 
 }
@@ -1043,43 +1044,77 @@ func SendMessages(c echo.Context) error {
 }
 
 func GetUserConversations(c echo.Context) error {
-	userID := c.QueryParam("userID")
+    userID := c.QueryParam("userID")
 
-	type Conversation struct {
-		SenderID   int `json:"senderID"`
-		ReceiverID int `json:"receiverID"`
-	}
-	
+    type Conversation struct {
+        SenderID     int    `json:"senderID"`
+        SenderName   string `json:"senderName"`
+        ReceiverID   int    `json:"receiverID"`
+        ReceiverName string `json:"receiverName"`
+        LastMessage  string `json:"lastMessage"`
+    }
 
-	query := `SELECT DISTINCT senderID, receiverID FROM messages WHERE senderID = ? OR receiverID = ?`
-	rows, err := db.Query(query, userID, userID)
+    // Get distinct conversations with last message
+    query := `
+        WITH RankedMessages AS (
+            SELECT 
+                m.*,
+                ROW_NUMBER() OVER (
+                    PARTITION BY 
+                        CASE 
+                            WHEN senderID < receiverID 
+                            THEN senderID || '-' || receiverID 
+                            ELSE receiverID || '-' || senderID 
+                        END 
+                    ORDER BY created_at DESC
+                ) as rn
+            FROM messages m
+            WHERE senderID = ? OR receiverID = ?
+        )
+        SELECT 
+            m.senderID,
+            s.displayName as senderName,
+            m.receiverID,
+            r.displayName as receiverName,
+            m.content as lastMessage
+        FROM RankedMessages m
+        JOIN users s ON m.senderID = s.idUser
+        JOIN users r ON m.receiverID = r.idUser
+        WHERE rn = 1
+        ORDER BY m.created_at DESC`
 
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{
-			"error": "Failed to query conversations",
-		})
-	}
+    rows, err := db.Query(query, userID, userID)
+    if err != nil {
+        return c.JSON(http.StatusInternalServerError, echo.Map{
+            "error": "Failed to query conversations: " + err.Error(),
+        })
+    }
+    defer rows.Close()
 
-	defer rows.Close()
+    var conversations []Conversation
+    for rows.Next() {
+        var conv Conversation
+        if err := rows.Scan(
+            &conv.SenderID,
+            &conv.SenderName,
+            &conv.ReceiverID,
+            &conv.ReceiverName,
+            &conv.LastMessage,
+        ); err != nil {
+            return c.JSON(http.StatusInternalServerError, echo.Map{
+                "error": "Failed to scan conversation data: " + err.Error(),
+            })
+        }
+        conversations = append(conversations, conv)
+    }
 
-	var conversations []Conversation
-	for rows.Next() {
-		var conversation Conversation
-		if err := rows.Scan(&conversation.SenderID, &conversation.ReceiverID); err != nil {
-			return c.JSON(http.StatusInternalServerError, echo.Map{
-				"error": "Failed to scan conversation data",
-			})
-		}
-		conversations = append(conversations, conversation)
-	}
+    if err := rows.Err(); err != nil {
+        return c.JSON(http.StatusInternalServerError, echo.Map{
+            "error": "Error iterating over rows: " + err.Error(),
+        })
+    }
 
-	if err := rows.Err(); err != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{
-			"error": "Error iterating over rows",
-		})
-	}
-
-	return c.JSON(http.StatusOK, conversations)
+    return c.JSON(http.StatusOK, conversations)
 }
 
 

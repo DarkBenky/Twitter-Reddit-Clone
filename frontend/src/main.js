@@ -11,6 +11,7 @@ import SinglePost from './components/SinglePost.vue';
 import EditPost from './components/EditPost.vue';
 import LoginPage from './components/LoginPage.vue';
 import UserConversation from './components/UserConversation.vue'
+import ConversationsList from './components/ConversationsList.vue'
 
 axios.defaults.baseURL = 'http://localhost:5050';
 axios.defaults.headers.common['Content-Type'] = 'application/json';
@@ -23,7 +24,8 @@ const routes = [
     { path: '/add_post', component: AddPost },
     { path: '/edit/:id', component: EditPost },
     { path: '/login', component: LoginPage },
-    { path: '/dm/:id',  component: UserConversation }
+    { path: '/dm/:id',  component: UserConversation },
+    { path: '/dms',  component: ConversationsList },
 ]
 
 const router = createRouter({
@@ -35,7 +37,8 @@ const store = createStore({
     state() {
         return {
             userId: -1,
-            currentUser: null
+            currentUser: null,
+            users : []
         }
     },
     mutations: {
