@@ -1,5 +1,6 @@
 <template>
     <div class="user-conversation">
+        <NavBar :user="currentUser"></NavBar>
         <h1>Messages</h1>
         <p v-if="this.$store.state.userId == -1">You need to be logged in</p>
         <div class="messages-container">
@@ -15,9 +16,15 @@
 
 <script>
 import axios from 'axios';
+import NavBar from './NavBar.vue';
 
 export default {
     name: 'UserConversation',
+
+    components: {
+        NavBar
+    },
+
     data() {
         return {
             baseUrl: "http://localhost:5050",
@@ -47,6 +54,8 @@ export default {
     created() {
         this.getMessages();
         this.startPolling();
+        console.log(this.$store.state.currentUser);
+        this.currentUser = this.$store.state.currentUser;
     },
     beforeUnmount() {
         if (this.pollingInterval) {
@@ -61,7 +70,6 @@ export default {
 
 <style scoped>
 .user-conversation {
-    max-width: 800px;
     margin: 0 auto;
     padding: 20px;
 }
