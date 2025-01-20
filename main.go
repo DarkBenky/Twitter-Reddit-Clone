@@ -500,6 +500,7 @@ func main() {
 	e.GET("/like", like)
 	e.GET("/dislike", dislike)
 	e.GET("/messages", getMessages)
+	e.POST("/sendMessage", SendMessages)
 	e.Logger.Fatal(e.Start(":5050"))
 
 }
@@ -1000,6 +1001,47 @@ func getMessages(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, messages)
 }
+
+func SendMessages(c echo.Context) error {
+	type MessageRequest struct {
+		SenderID   string `json:"senderID"`
+		ReceiverID string `json:"receiverID"`
+		Content    string `json:"content"`
+	}
+
+	message := new(MessageRequest)
+	if err := c.Bind(message); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Invalid request data",
+		})
+	}
+
+	if message.SenderID == "" || message.ReceiverID == "" || message.Content == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "SenderID, receiverID, and content are required",
+		})
+	}
+
+	query := `INSERT INTO messages (senderID, receiverID, content, created_at) VALUES (?, ?, ?, ?)`
+	result, err := db.Exec(query, message.SenderID, message.ReceiverID, message.Content, time.Now().Format(time.RFC3339))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to insert message: " + err.Error(),
+		})
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil || rowsAffected == 0 {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to confirm message insertion",
+		})
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "Message sent successfully",
+	})
+}
+
 
 // insertRandomUsers generates and inserts synthetic user data into the database for testing purposes.
 // It creates 'n' users with randomly generated usernames, display names, and emails using the faker library.
