@@ -2,9 +2,22 @@
     <div>
         <NavBar :user="getUserWithId($store.state.userId)"></NavBar>
         <div class="feed-container">
+            <div class="sort-controls">
+                <label>Sort by:</label>
+                <select v-model="sortBy" @change="handleSort" class="sort-select">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="mostLiked">Most Liked</option>
+                    <option value="mostDisliked">Most Disliked</option>
+                </select>
+            </div>
             <div class="posts-section">
-                <PostView v-for="post in posts" :key="post.idPost" :post="post" :user="getUserWithId(post.userID)"
-                    :users="users" @post-deleted="removePost" />
+                <PostView v-for="post in sortedPosts" 
+                         :key="post.idPost" 
+                         :post="post" 
+                         :user="getUserWithId(post.userID)"
+                         :users="users" 
+                         @post-deleted="removePost" />
             </div>
         </div>
     </div>
@@ -14,7 +27,6 @@
 import axios from 'axios';
 import NavBar from './NavBar.vue';
 import PostView from './Post.vue';
-
 
 export default {
     name: 'PostFeed',
@@ -28,13 +40,34 @@ export default {
         return {
             posts: [],
             users: [],
-            baseUrl: "http://localhost:5050"
+            baseUrl: "http://localhost:5050",
+            sortBy: 'newest',
+            postsWithMetrics: []
         };
     },
 
     created() {
         this.fetchPosts();
         this.fetchUsers();
+    },
+
+    computed: {
+        sortedPosts() {
+            return [...this.postsWithMetrics].sort((a, b) => {
+                switch (this.sortBy) {
+                    case 'newest':
+                        return new Date(b.created_at) - new Date(a.created_at);
+                    case 'oldest':
+                        return new Date(a.created_at) - new Date(b.created_at);
+                    case 'mostLiked':
+                        return b.likes - a.likes;
+                    case 'mostDisliked':
+                        return b.dislikes - a.dislikes;
+                    default:
+                        return 0;
+                }
+            });
+        }
     },
 
     methods: {
@@ -50,7 +83,22 @@ export default {
         async fetchPosts() {
             try {
                 const response = await axios.get(`${this.baseUrl}/posts`);
-                this.posts = response.data;
+                const posts = response.data;
+                
+                // Fetch metrics for each post
+                this.postsWithMetrics = await Promise.all(
+                    posts.map(async (post) => {
+                        const metricsResponse = await axios.get(
+                            `${this.baseUrl}/likesDislikes`,
+                            { params: { idPost: post.idPost } }
+                        );
+                        return {
+                            ...post,
+                            likes: metricsResponse.data.likes || 0,
+                            dislikes: metricsResponse.data.dislikes || 0
+                        };
+                    })
+                );
             } catch (error) {
                 console.error('Error fetching posts:', error);
             }
@@ -63,6 +111,11 @@ export default {
             } catch (error) {
                 console.error('Error fetching users:', error);
             }
+        },
+
+        handleSort() {
+            // The computed property will handle the sorting
+            // This method exists for potential future sort-related functionality
         }
     }
 };
@@ -71,7 +124,49 @@ export default {
 <style scoped>
 .feed-container {
     max-width: 800px;
-    margin: 0 auto;
+    margin: 2rem auto;
     padding: 1rem;
+}
+
+.sort-controls {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.sort-controls label {
+    font-weight: 500;
+    color: #333;
+}
+
+.sort-select {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.sort-select:hover {
+    border-color: #999;
+}
+
+.sort-select:focus {
+    border-color: #0066cc;
+    box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+}
+
+.posts-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 </style>
