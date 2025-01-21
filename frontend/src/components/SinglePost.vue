@@ -13,8 +13,9 @@
             <div v-else-if="post" class="post">
                 <!-- Post Header with User Info -->
                 <div class="post-header">
-                    <UserProfile v-if="user" :user="user" />
+                    <UserProfile :user="getUserFromId(post.userID)" />
                     <small v-if="post" class="post-date">{{ formatDate(post.created_at) }}</small>
+                    <h2 v-if="category" class="category"> {{ category }}</h2>
                 </div>
 
                 <!-- Post Content -->
@@ -111,6 +112,7 @@ export default {
             liked: false,
             disliked: false,
 
+            category: null,
             post: null,
             user: null,
             comments: [],
@@ -268,6 +270,11 @@ export default {
                 console.error("Error adding comment:", error);
             }
         },
+
+        getUserFromId(id) {
+            return this.users.find(user => user.idUser === id);
+        },
+
         async fetchPost(postId) {
             try {
                 const response = await axios.get(`${this.baseUrl}/post`, {
@@ -275,8 +282,10 @@ export default {
                         id: postId
                     }
                 })
-                this.post = response.data;
-                await this.fetchUser(this.post.userID);
+                this.post = await response.data;
+                // this.fetchUser(this.post.userID);
+                this.user = this.getUserFromId(this.post.userID);
+                this.category = this.post.category;
             } catch (error) {
                 this.error = 'Failed to load post: ' + error.message;
                 console.error('Error fetching post:', error);
@@ -594,5 +603,21 @@ export default {
 
 .cancel-edit:hover {
     background-color: #d4d4d4;
+}
+
+.category {
+    display: inline-block;
+    background-color: #007bff;
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 16px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin: 0.5rem 0;
+    transition: background-color 0.2s ease;
+}
+
+.category:hover {
+    background-color: #007bff6c;
 }
 </style>

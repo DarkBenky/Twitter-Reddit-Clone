@@ -19,6 +19,13 @@
                          :users="users" 
                          @post-deleted="removePost" />
             </div>
+            <button 
+                @click="loadMore" 
+                class="load-more-btn"
+                v-if="hasMorePosts"
+            >
+                {{ loading ? 'Loading...' : 'Load More' }}
+            </button>
         </div>
     </div>
 </template>
@@ -42,7 +49,10 @@ export default {
             users: [],
             baseUrl: "http://localhost:5050",
             sortBy: 'newest',
-            postsWithMetrics: []
+            postsWithMetrics: [],
+            offset: 0,
+            loading: false,
+            hasMorePosts: true
         };
     },
 
@@ -80,9 +90,57 @@ export default {
             return this.users.find(user => user.idUser === id);
         },
 
+        async loadMore() {
+            if (this.loading) return;
+            
+            this.loading = true;
+            try {
+                const response = await axios.get(`${this.baseUrl}/posts`, {
+                    params: {
+                        offset: this.offset
+                    }
+                });
+                const newPosts = response.data;
+                
+                if (newPosts.length === 0) {
+                    this.hasMorePosts = false;
+                    return;
+                }
+
+                // Fetch metrics for new posts
+                const postsWithMetrics = await Promise.all(
+                    newPosts.map(async (post) => {
+                        const metricsResponse = await axios.get(
+                            `${this.baseUrl}/likesDislikes`,
+                            { params: { idPost: post.idPost } }
+                        );
+                        return {
+                            ...post,
+                            likes: metricsResponse.data.likes || 0,
+                            dislikes: metricsResponse.data.dislikes || 0
+                        };
+                    })
+                );
+
+                // Append new posts to existing posts
+                this.postsWithMetrics = [...this.postsWithMetrics, ...postsWithMetrics];
+                this.offset += 25; // Increment offset for next load
+            } catch (error) {
+                console.error('Error loading more posts:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+
         async fetchPosts() {
             try {
-                const response = await axios.get(`${this.baseUrl}/posts`);
+                this.loading = true;
+                this.offset = 0; // Reset offset when fetching initial posts
+                const response = await axios.get(`${this.baseUrl}/posts`, {
+                    params: {
+                        offset: this.offset
+                    }
+                });
                 const posts = response.data;
                 
                 // Fetch metrics for each post
@@ -99,8 +157,11 @@ export default {
                         };
                     })
                 );
+                this.offset = posts.length;
             } catch (error) {
                 console.error('Error fetching posts:', error);
+            } finally {
+                this.loading = false;
             }
         },
 
@@ -164,5 +225,27 @@ export default {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+}
+
+.load-more-btn {
+    width: 100%;
+    padding: 1rem;
+    margin-top: 1rem;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s ease;
+}
+
+.load-more-btn:hover {
+    background-color: #45a049;
+}
+
+.load-more-btn:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
 }
 </style>

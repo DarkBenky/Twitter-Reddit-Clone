@@ -27,6 +27,12 @@
         </button>
         <p v-if="error" class="error">{{ error }}</p>
       </form>
+      <div class="login-container">
+        <!-- ...existing template code... -->
+        <p class="register-link">
+          Don't have an account? <router-link to="/register">Register here</router-link>
+        </p>
+      </div>
     </div>
   </template>
   
@@ -73,6 +79,20 @@
   </script>
   
   <style scoped>
+  .register-link {
+    margin-top: 1rem;
+    text-align: center;
+  }
+  
+  .register-link a {
+    color: #4CAF50;
+    text-decoration: none;
+  }
+  
+  .register-link a:hover {
+    text-decoration: underline;
+  }
+
   .login-container {
     max-width: 400px;
     margin: 2rem auto;

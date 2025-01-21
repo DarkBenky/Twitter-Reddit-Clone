@@ -4,10 +4,12 @@
         <div class="post-header">
             <UserProfile :user="user" />
             <small class="post-date">{{ formatDate(post.created_at) }}</small>
+            
         </div>
-
+        
         <!-- Post Content -->
         <div class="post-content">
+            <h2 class="category"> {{ post.category }}</h2>
             <p>{{ post.content_text }}</p>
 
             <div class="like-dislike">
@@ -85,6 +87,8 @@ export default {
 
     props: {
         post: { type: Object, required: true },
+        likes_prop: { type: Number, required: false },
+        dislikes_prop: { type: Number, required: false },
         user: { type: Object, required: true },
         users: { type: Array, required: true }
     },
@@ -299,6 +303,21 @@ export default {
 
 <style scoped>
 
+.category {
+    display: inline-block;
+    background-color: #007bff;
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 16px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin: 0.5rem 0;
+    transition: background-color 0.2s ease;
+}
+
+.category:hover {
+    background-color: #007bff6c;
+}
 
 .liked {
     border: 1px solid #666;

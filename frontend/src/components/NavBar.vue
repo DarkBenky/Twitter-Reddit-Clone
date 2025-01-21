@@ -23,6 +23,9 @@
       <router-link v-else to="/login" class="nav-link">
         Login
       </router-link>
+      <router-link v-if="this.$store.state.userId == -1" to="/register" class="nav-link">
+        Register
+      </router-link>
       <div class="nav-link" v-if="this.$store.state.userId != -1">
         <h3  @click="logout">Logout</h3>
       </div>
@@ -139,5 +142,19 @@ export default {
     padding: 0.5rem 0.8rem;
     font-size: 0.9rem;
   }
+}
+
+.register-link {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.register-link a {
+  color: #4CAF50;
+  text-decoration: none;
+}
+
+.register-link a:hover {
+  text-decoration: underline;
 }
 </style>

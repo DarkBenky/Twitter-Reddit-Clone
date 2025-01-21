@@ -1,4 +1,3 @@
-// main.js
 import { createApp } from 'vue'
 import App from './App.vue'
 import userProfileSinglePage from './components/userProfileSinglePage.vue'
@@ -12,6 +11,7 @@ import EditPost from './components/EditPost.vue';
 import LoginPage from './components/LoginPage.vue';
 import UserConversation from './components/UserConversation.vue'
 import ConversationsList from './components/ConversationsList.vue'
+import RegisterPage from './components/RegisterPage.vue'
 
 axios.defaults.baseURL = 'http://localhost:5050';
 axios.defaults.headers.common['Content-Type'] = 'application/json';
@@ -26,6 +26,7 @@ const routes = [
     { path: '/login', component: LoginPage },
     { path: '/dm/:id',  component: UserConversation },
     { path: '/dms',  component: ConversationsList },
+    { path: '/register', component: RegisterPage }
 ]
 
 const router = createRouter({
