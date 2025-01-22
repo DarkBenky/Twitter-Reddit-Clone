@@ -12,6 +12,8 @@ import LoginPage from './components/LoginPage.vue';
 import UserConversation from './components/UserConversation.vue'
 import ConversationsList from './components/ConversationsList.vue'
 import RegisterPage from './components/RegisterPage.vue'
+import CategoryList from './components/CategoryList.vue'
+import CategoryPosts from './components/CategoryPosts.vue'
 
 axios.defaults.baseURL = 'http://localhost:5050';
 axios.defaults.headers.common['Content-Type'] = 'application/json';
@@ -26,7 +28,10 @@ const routes = [
     { path: '/login', component: LoginPage },
     { path: '/dm/:id',  component: UserConversation },
     { path: '/dms',  component: ConversationsList },
-    { path: '/register', component: RegisterPage }
+    { path: '/register', component: RegisterPage },
+    {path : '/categories', component: CategoryList},
+    { path: '/category/:category', component: CategoryPosts },
+    { path: '/:notFound(.*)', redirect: '/' },
 ]
 
 const router = createRouter({

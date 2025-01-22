@@ -31,7 +31,7 @@
 
                     <!-- View mode -->
                     <div v-else>
-                        <p>{{ post.content_text }}</p>
+                        <span v-html="formatLinks(post.content_text)"></span>
                         <div class="edit-delete-options" v-if="post.userID === $store.state.userId">
                             <button class="toggle-delete" @click="deletePost(post.idPost)">
                                 Delete
@@ -40,6 +40,15 @@
                                 Edit
                             </button>
                         </div>
+                    </div>
+
+                    <div class="image-container" v-if="post.imageURL">
+                        <img 
+                            :src="post.imageURL" 
+                            alt="Post Image"
+                            @error="handleImageError" 
+                            class="post-image"
+                        />
                     </div>
 
                     <div class="like-dislike">
@@ -78,7 +87,7 @@
                                     <UserProfile :user="getUserWithId(comment.idUser)" compact />
                                 </div>
                                 <div class="comment-content">
-                                    <p>{{ comment.content_text }}</p>
+                                    <span v-html="formatLinks(comment.content_text)"></span>
                                     <small class="comment-date">{{ formatDate(comment.created_at) }}</small>
                                 </div>
                             </li>
@@ -363,12 +372,51 @@ export default {
             } catch (error) {
                 console.error("Error saving edit:", error);
             }
+        },
+
+        formatLinks(text) {
+            if (!text) return '';
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            return text.replace(urlRegex, url => 
+                `<a href="${url}" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    class="content-link">${url}</a>`
+            );
         }
     }
 };
 </script>
 
 <style scoped>
+.image-container {
+    width: 100%;
+    max-width: 600px;
+    margin: 1rem auto;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease;
+}
+
+.image-container:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.post-image {
+    width: 100%;
+    height: auto;
+    max-height: 500px;
+    object-fit: cover;
+    display: block;
+    transition: opacity 0.3s ease;
+}
+
+.post-image:hover {
+    opacity: 0.95;
+}
+
 .liked {
     border: 1px solid #666;
     background-color: #28a745;
@@ -619,5 +667,21 @@ export default {
 
 .category:hover {
     background-color: #007bff6c;
+}
+
+:deep(.content-link) {
+    color: #0066cc;
+    text-decoration: underline;
+    cursor: pointer;
+    word-break: break-word;
+}
+
+:deep(.content-link:hover) {
+    color: #004499;
+    text-decoration: underline;
+}
+
+.comment :deep(.content-link) {
+    font-size: 0.9em;
 }
 </style>

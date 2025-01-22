@@ -9,8 +9,18 @@
         
         <!-- Post Content -->
         <div class="post-content">
-            <h2 class="category"> {{ post.category }}</h2>
-            <p>{{ post.content_text }}</p>
+            <h2 @click="goToCategoryPosts(post.category)" class="category"> {{ post.category }}</h2>
+            <!-- <p v >{{ post.content_text }}</p> -->
+            <span v-html="formatLinks(post.content_text)"></span>
+            
+            <div class="image-container" v-if="post.imageURL">
+                <img 
+                    :src="post.imageURL" 
+                    alt="Post Image"
+                    @error="handleImageError" 
+                    class="post-image"
+                />
+            </div>
 
             <div class="like-dislike">
                 <button @click="like" v-if="liked" class="liked">
@@ -57,10 +67,11 @@
                         <li v-for="comment in comments" :key="comment.idComment" class="comment">
                             <!-- Comment Header with User Info -->
                             <div class="comment-header">
-                                <UserProfile :user="getUserWithId(comment.idUser)" />
+                                <UserProfile :user="getUserWithId(comment.idUser)"/>
                             </div>
                             <div class="comment-content">
-                                <p>{{ comment.content_text }}</p>
+                                <!-- <p>{{ comment.content_text }}</p> -->
+                                <span v-html="formatLinks(comment.content_text)"></span>
                                 <small class="comment-date">{{
                                     formatDate(comment.created_at)
                                 }}</small>
@@ -114,6 +125,19 @@ export default {
     },
 
     methods: {
+        formatLinks(text) {
+            if (!text) return '';
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            return text.replace(urlRegex, url => 
+                `<a href="${url}" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    class="content-link">${url}</a>`
+            );
+        },
+        goToCategoryPosts(categoryName) {
+            this.$router.push(`/category/${categoryName}`);
+        },
         editPost() {
             this.$router.push(`/edit/${this.post.idPost}`);
         },
@@ -302,6 +326,34 @@ export default {
 
 
 <style scoped>
+
+.image-container {
+    width: 100%;
+    max-width: 200px;
+    margin: 1rem auto;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease;
+}
+
+.image-container:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.post-image {
+    width: 100%;
+    height: auto;
+    max-height: 500px;
+    object-fit: cover;
+    display: block;
+    transition: opacity 0.3s ease;
+}
+
+.post-image:hover {
+    opacity: 0.95;
+}
 
 .category {
     display: inline-block;

@@ -1,6 +1,28 @@
 <template>
     <div class="conversations-list">
         <NavBar :user="this.$store.state.currentUser"></NavBar>
+        
+        <!-- Add search section -->
+        <div class="search-section">
+            <input 
+                type="text" 
+                v-model="searchQuery" 
+                placeholder="Search users..."
+                class="search-input"
+            />
+            <div v-if="searchResults.length > 0" class="search-results">
+                <div 
+                    v-for="user in searchResults" 
+                    :key="user.idUser" 
+                    @click="startConversation(user)"
+                    class="search-result-item"
+                >
+                    <span class="username">{{ user.username }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Existing conversations list -->
         <div v-if="conversations" class="conversations-container">
             <router-link 
                 v-for="conversation in conversations" 
@@ -32,7 +54,9 @@ export default {
     data() {
         return {
             baseUrl: "http://localhost:5050",
-            conversations: []
+            conversations: [],
+            searchQuery: '',
+            searchResults: []
         };
     },
     methods: {
@@ -51,6 +75,27 @@ export default {
         },
         getUserWithId(id) {
             return this.$store.state.users.find(user => user.idUser === id);
+        },
+        searchUsers() {
+            if (!this.searchQuery) {
+                this.searchResults = [];
+                return;
+            }
+            const query = this.searchQuery.toLowerCase();
+            this.searchResults = this.$store.state.users.filter(user => 
+                user.username.toLowerCase().includes(query) && 
+                user.idUser !== this.$store.state.userId
+            );
+        },
+        startConversation(user) {
+            this.$router.push(`/dm/${user.idUser}`);
+            this.searchQuery = '';
+            this.searchResults = [];
+        }
+    },
+    watch: {
+        searchQuery() {
+            this.searchUsers();
         }
     },
     mounted() {
@@ -107,5 +152,42 @@ export default {
     padding: 20px;
     color: #666;
     font-style: italic;
+}
+
+.search-section {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.search-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-top: 5px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.search-result-item {
+    padding: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.search-result-item:hover {
+    background-color: #f5f5f5;
 }
 </style>

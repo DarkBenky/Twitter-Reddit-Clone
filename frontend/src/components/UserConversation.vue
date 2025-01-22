@@ -8,7 +8,7 @@
                  :class="['message', message.senderID === $store.state.userId ? 'sent' : 'received']">
                 <div class="message-content">
                     <UserProfile :user="getUserWithId(message.senderID)" />
-                    {{ message.content }}
+                    <span v-html="formatMessageWithLinks(message.content)"></span>
                 </div>
                 <div class="message-timestamp">{{ message.created_at }}</div>
             </div>
@@ -99,6 +99,16 @@ export default {
 
         startPolling() {
             this.pollingInterval = setInterval(this.getMessages, this.intervalTime);
+        },
+
+        formatMessageWithLinks(content) {
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            return content.replace(urlRegex, url => 
+                `<a href="${url}" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    class="message-link">${url}</a>`
+            );
         }
     },
 
@@ -252,5 +262,24 @@ export default {
     .message-input-container {
         padding: 10px;
     }
+}
+
+:deep(.message-link) {
+    color: #0066cc;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+:deep(.message-link:hover) {
+    color: #004499;
+}
+
+.sent :deep(.message-link) {
+    color: #ffffff;
+    opacity: 0.9;
+}
+
+.sent :deep(.message-link:hover) {
+    opacity: 1;
 }
 </style>
