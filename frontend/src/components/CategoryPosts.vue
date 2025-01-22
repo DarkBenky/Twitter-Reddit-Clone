@@ -178,6 +178,11 @@ export default {
                 console.error('Error fetching users:', error);
             }
         }
+    },
+
+    mounted() {
+        this.fetchPosts();
+        setInterval(this.fetchPosts, 2500);
     }
 };
 </script>
