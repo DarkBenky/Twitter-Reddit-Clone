@@ -47,7 +47,7 @@
         password: '',
         loading: false,
         error: null,
-        baseUrl: 'http://localhost:5050'
+        baseUrl: 'http://localhost:5555'
       }
     },
     methods: {

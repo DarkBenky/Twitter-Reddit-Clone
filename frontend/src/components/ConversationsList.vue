@@ -53,7 +53,7 @@ export default {
     name: 'ConversationsList',
     data() {
         return {
-            baseUrl: "http://localhost:5050",
+            baseUrl: "http://localhost:5555",
             conversations: [],
             searchQuery: '',
             searchResults: []

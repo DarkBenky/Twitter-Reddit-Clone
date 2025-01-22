@@ -114,7 +114,7 @@ export default {
             comments: [],
             loadingComments: false,
             commentsError: null,
-            baseUrl: "http://localhost:5050",
+            baseUrl: "http://localhost:5555",
             newComment: "",
         };
     },

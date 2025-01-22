@@ -70,29 +70,29 @@ type Message struct {
 }
 
 func GetAllPosts(c echo.Context) error {
-    // Keep struct definition
-    type Post struct {
-        IDPost      int    `json:"idPost"`
-        ContentText string `json:"content_text"`
-        CreatedAt   string `json:"created_at"`
-        UserID      int    `json:"userID"`
-        Category    string `json:"category"`
-        ImageURL    string `json:"imageURL"`
-    }
+	// Keep struct definition
+	type Post struct {
+		IDPost      int    `json:"idPost"`
+		ContentText string `json:"content_text"`
+		CreatedAt   string `json:"created_at"`
+		UserID      int    `json:"userID"`
+		Category    string `json:"category"`
+		ImageURL    string `json:"imageURL"`
+	}
 
-    offset := c.QueryParam("offset")
-    if offset == "" {
-        offset = "0"
-    }
+	offset := c.QueryParam("offset")
+	if offset == "" {
+		offset = "0"
+	}
 
-    offsetInt, err := strconv.Atoi(offset)
-    if err != nil {
-        log.Printf("Invalid offset: %v", err)
-        return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid offset parameter"})
-    }
+	offsetInt, err := strconv.Atoi(offset)
+	if err != nil {
+		log.Printf("Invalid offset: %v", err)
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid offset parameter"})
+	}
 
-    // Reorder SELECT to match struct field order
-    query := `
+	// Reorder SELECT to match struct field order
+	query := `
         SELECT 
             p.idPost,
             p.content_text,
@@ -105,62 +105,62 @@ func GetAllPosts(c echo.Context) error {
         ORDER BY p.created_at DESC 
         LIMIT 10 OFFSET ?`
 
-    rows, err := db.Query(query, offsetInt)
-    if err != nil {
-        log.Printf("Query error: %v", err)
-        return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to query posts"})
-    }
-    defer rows.Close()
+	rows, err := db.Query(query, offsetInt)
+	if err != nil {
+		log.Printf("Query error: %v", err)
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to query posts"})
+	}
+	defer rows.Close()
 
-    var posts []Post
-    for rows.Next() {
-        var post Post
-        // Scan order now matches SELECT order
-        if err := rows.Scan(
-            &post.IDPost,
-            &post.ContentText, 
-            &post.CreatedAt,
-            &post.UserID,
-            &post.Category,
-            &post.ImageURL,
-        ); err != nil {
-            log.Printf("Scan error: %v", err)
-            return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to scan post data"})
-        }
-        posts = append(posts, post)
-    }
+	var posts []Post
+	for rows.Next() {
+		var post Post
+		// Scan order now matches SELECT order
+		if err := rows.Scan(
+			&post.IDPost,
+			&post.ContentText,
+			&post.CreatedAt,
+			&post.UserID,
+			&post.Category,
+			&post.ImageURL,
+		); err != nil {
+			log.Printf("Scan error: %v", err)
+			return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to scan post data"})
+		}
+		posts = append(posts, post)
+	}
 
-    return c.JSON(http.StatusOK, posts)
+	return c.JSON(http.StatusOK, posts)
 }
 
 func GetAllPostsForCategory(c echo.Context) error {
-    category := c.QueryParam("category")
-    
-    if category == "" {
-        return c.JSON(http.StatusBadRequest, echo.Map{"error": "Category parameter is required"})
-    }
+	category := c.QueryParam("category")
 
-    type Post struct {
-        IDPost      int    `json:"idPost"`
-        ContentText string `json:"content_text"`
-        CreatedAt   string `json:"created_at"`
-        UserID      int    `json:"userID"`
-        Category    string `json:"category"`
-        ImageURL    string `json:"imageURL"`
-    }
+	if category == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Category parameter is required"})
+	}
 
-    offset := c.QueryParam("offset")
-    if offset == "" {
-        offset = "0"
-    }
+	type Post struct {
+		IDPost      int    `json:"idPost"`
+		ContentText string `json:"content_text"`
+		CreatedAt   string `json:"created_at"`
+		UserID      int    `json:"userID"`
+		Category    string `json:"category"`
+		ImageURL    string `json:"imageURL"`
+	}
 
-    offsetInt, err := strconv.Atoi(offset)
-    if err != nil {
-        log.Printf("Invalid offset: %v", err)
-        return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid offset parameter"})
-    }
+	offset := c.QueryParam("offset")
+	if offset == "" {
+		offset = "0"
+	}
 
-    query := `
+	offsetInt, err := strconv.Atoi(offset)
+	if err != nil {
+		log.Printf("Invalid offset: %v", err)
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid offset parameter"})
+	}
+
+	query := `
         SELECT 
             p.idPost,
             p.content_text,
@@ -174,37 +174,36 @@ func GetAllPostsForCategory(c echo.Context) error {
         ORDER BY p.created_at DESC 
         LIMIT 10 OFFSET ?`
 
-    rows, err := db.Query(query, category, offsetInt)
-    if err != nil {
-        log.Printf("Query error: %v", err)
-        return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to query posts"})
-    }
-    defer rows.Close()
+	rows, err := db.Query(query, category, offsetInt)
+	if err != nil {
+		log.Printf("Query error: %v", err)
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to query posts"})
+	}
+	defer rows.Close()
 
-    var posts []Post
-    for rows.Next() {
-        var post Post
-        if err := rows.Scan(
-            &post.IDPost,
-            &post.ContentText, 
-            &post.CreatedAt,
-            &post.UserID,
-            &post.Category,
-            &post.ImageURL,
-        ); err != nil {
-            log.Printf("Scan error: %v", err)
-            return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to scan post data"})
-        }
-        posts = append(posts, post)
-    }
+	var posts []Post
+	for rows.Next() {
+		var post Post
+		if err := rows.Scan(
+			&post.IDPost,
+			&post.ContentText,
+			&post.CreatedAt,
+			&post.UserID,
+			&post.Category,
+			&post.ImageURL,
+		); err != nil {
+			log.Printf("Scan error: %v", err)
+			return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to scan post data"})
+		}
+		posts = append(posts, post)
+	}
 
-    if len(posts) == 0 {
-        return c.JSON(http.StatusNotFound, echo.Map{"error": "No posts found for the given category"})
-    }
+	if len(posts) == 0 {
+		return c.JSON(http.StatusNotFound, echo.Map{"error": "No posts found for the given category"})
+	}
 
-    return c.JSON(http.StatusOK, posts)
+	return c.JSON(http.StatusOK, posts)
 }
-
 
 func GetUsers() []User {
 	// Get all users from the database
@@ -468,63 +467,63 @@ func AddComment(c echo.Context) error {
 }
 
 func EditPost(c echo.Context) error {
-    // Create struct for request body
-    type EditRequest struct {
-        PostID      string `json:"postID"`
-        ContentText string `json:"contentText"`
-        ImageURL    string `json:"imageURL"`
-        CategoryID  string `json:"categoryID"`
-    }
+	// Create struct for request body
+	type EditRequest struct {
+		PostID      string `json:"postID"`
+		ContentText string `json:"contentText"`
+		ImageURL    string `json:"imageURL"`
+		CategoryID  string `json:"categoryID"`
+	}
 
-    // Parse request body
-    var req EditRequest
-    if err := c.Bind(&req); err != nil {
-        // Add debug logging
-        fmt.Printf("Request binding error: %v\n", err)
-        fmt.Printf("Request body: %+v\n", c.Request().Body)
-        return c.JSON(http.StatusBadRequest, echo.Map{
-            "error": "Invalid request format: " + err.Error(),
-        })
-    }
+	// Parse request body
+	var req EditRequest
+	if err := c.Bind(&req); err != nil {
+		// Add debug logging
+		fmt.Printf("Request binding error: %v\n", err)
+		fmt.Printf("Request body: %+v\n", c.Request().Body)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Invalid request format: " + err.Error(),
+		})
+	}
 
-    // Log received data
-    fmt.Printf("Received request: %+v\n", req)
+	// Log received data
+	fmt.Printf("Received request: %+v\n", req)
 
-    // Validate input
-    if req.PostID == "" || req.ContentText == "" {
-        return c.JSON(http.StatusBadRequest, echo.Map{
-            "error": "Post ID and content text are required",
-        })
-    }
+	// Validate input
+	if req.PostID == "" || req.ContentText == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Post ID and content text are required",
+		})
+	}
 
-    fmt.Printf("Executing query with values: content=%s, image=%s, category=%s, postID=%s\n", 
-        req.ContentText, req.ImageURL, req.CategoryID, req.PostID)
-    
-    query := `UPDATE posts SET content_text = ?, imageURL = ?, categoryID = ? WHERE idPost = ?`
-    result, err := db.Exec(query, req.ContentText, req.ImageURL, req.CategoryID, req.PostID)
-    if err != nil {
-        fmt.Printf("Database error: %v\n", err)
-        return c.JSON(http.StatusInternalServerError, echo.Map{
-            "error": "Failed to update post: " + err.Error(),
-        })
-    }
+	fmt.Printf("Executing query with values: content=%s, image=%s, category=%s, postID=%s\n",
+		req.ContentText, req.ImageURL, req.CategoryID, req.PostID)
 
-    // Verify update
-    rowsAffected, err := result.RowsAffected()
-    if err != nil {
-        return c.JSON(http.StatusInternalServerError, echo.Map{
-            "error": "Failed to confirm update",
-        })
-    }
-    if rowsAffected == 0 {
-        return c.JSON(http.StatusNotFound, echo.Map{
-            "error": "Post not found",
-        })
-    }
+	query := `UPDATE posts SET content_text = ?, imageURL = ?, categoryID = ? WHERE idPost = ?`
+	result, err := db.Exec(query, req.ContentText, req.ImageURL, req.CategoryID, req.PostID)
+	if err != nil {
+		fmt.Printf("Database error: %v\n", err)
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to update post: " + err.Error(),
+		})
+	}
 
-    return c.JSON(http.StatusOK, echo.Map{
-        "message": "Post updated successfully",
-    })
+	// Verify update
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to confirm update",
+		})
+	}
+	if rowsAffected == 0 {
+		return c.JSON(http.StatusNotFound, echo.Map{
+			"error": "Post not found",
+		})
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "Post updated successfully",
+	})
 }
 
 // In main.go, update the DeletePost function:
@@ -577,21 +576,21 @@ func DeletePost(c echo.Context) error {
 }
 
 func GetPostById(c echo.Context) error {
-    type Post struct {
-        IDPost      int    `json:"idPost"`
-        ContentText string `json:"content_text"`
-        CreatedAt   string `json:"created_at"`
-        UserID      int    `json:"userID"`
-        Category    string `json:"category"`
-        ImageURL    string `json:"imageURL"`  // Added ImageURL field
-    }
+	type Post struct {
+		IDPost      int    `json:"idPost"`
+		ContentText string `json:"content_text"`
+		CreatedAt   string `json:"created_at"`
+		UserID      int    `json:"userID"`
+		Category    string `json:"category"`
+		ImageURL    string `json:"imageURL"` // Added ImageURL field
+	}
 
-    postID := c.QueryParam("id")
-    if postID == "" {
-        return c.JSON(http.StatusBadRequest, echo.Map{"error": "Post ID is required"})
-    }
+	postID := c.QueryParam("id")
+	if postID == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Post ID is required"})
+	}
 
-    query := `
+	query := `
         SELECT p.idPost, p.content_text, p.created_at, p.userID, 
                COALESCE(c.name, '') as category_name,
                COALESCE(p.imageURL, '') as imageURL
@@ -599,70 +598,69 @@ func GetPostById(c echo.Context) error {
         LEFT JOIN categories c ON p.categoryID = c.idCategory 
         WHERE p.idPost = ?`
 
-    var post Post
-    err := db.QueryRow(query, postID).Scan(
-        &post.IDPost,
-        &post.ContentText,
-        &post.CreatedAt,
-        &post.UserID,
-        &post.Category,
-        &post.ImageURL,  // Added ImageURL scan
-    )
+	var post Post
+	err := db.QueryRow(query, postID).Scan(
+		&post.IDPost,
+		&post.ContentText,
+		&post.CreatedAt,
+		&post.UserID,
+		&post.Category,
+		&post.ImageURL, // Added ImageURL scan
+	)
 
-    if err == sql.ErrNoRows {
-        return c.JSON(http.StatusNotFound, echo.Map{"error": "Post not found"})
-    }
-    if err != nil {
-        return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to scan post data"})
-    }
+	if err == sql.ErrNoRows {
+		return c.JSON(http.StatusNotFound, echo.Map{"error": "Post not found"})
+	}
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to scan post data"})
+	}
 
-    return c.JSON(http.StatusOK, post)
+	return c.JSON(http.StatusOK, post)
 }
 
 func AddCategory(c echo.Context) error {
-    // Define request structure
-    type CategoryRequest struct {
-        Name        string `json:"name"`
-        Description string `json:"description"`
-    }
+	// Define request structure
+	type CategoryRequest struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+	}
 
-    // Bind request body
-    category := new(CategoryRequest)
-    if err := c.Bind(category); err != nil {
-        return c.JSON(http.StatusBadRequest, echo.Map{
-            "error": "Invalid request format",
-        })
-    }
+	// Bind request body
+	category := new(CategoryRequest)
+	if err := c.Bind(category); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Invalid request format",
+		})
+	}
 
-    // Validate input
-    if category.Name == "" || category.Description == "" {
-        return c.JSON(http.StatusBadRequest, echo.Map{
-            "error": "Name and description are required",
-        })
-    }
+	// Validate input
+	if category.Name == "" || category.Description == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Name and description are required",
+		})
+	}
 
-    // Insert category
-    query := `INSERT INTO categories (name, description) VALUES (?, ?)`
-    result, err := db.Exec(query, category.Name, category.Description)
-    if err != nil {
-        return c.JSON(http.StatusInternalServerError, echo.Map{
-            "error": "Failed to insert category",
-        })
-    }
+	// Insert category
+	query := `INSERT INTO categories (name, description) VALUES (?, ?)`
+	result, err := db.Exec(query, category.Name, category.Description)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to insert category",
+		})
+	}
 
-    id, err := result.LastInsertId()
-    if err != nil {
-        return c.JSON(http.StatusInternalServerError, echo.Map{
-            "error": "Failed to get category ID",
-        })
-    }
+	id, err := result.LastInsertId()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to get category ID",
+		})
+	}
 
-    return c.JSON(http.StatusOK, echo.Map{
-        "message": "Category added successfully",
-        "categoryId": id,
-    })
+	return c.JSON(http.StatusOK, echo.Map{
+		"message":    "Category added successfully",
+		"categoryId": id,
+	})
 }
-
 
 func main() {
 
@@ -736,7 +734,7 @@ func main() {
 	e.GET("/categories", GetAllCategories)
 	e.GET("/category", GetCategoryByID)
 	e.POST("/addCategory", AddCategory)
-	e.Logger.Fatal(e.Start(":5050"))
+	e.Logger.Fatal(e.Start(":5555"))
 
 }
 

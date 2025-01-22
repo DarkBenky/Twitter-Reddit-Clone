@@ -97,7 +97,7 @@ export default {
       loading: true,
       error: null,
       users: [],
-      baseUrl: "http://localhost:5050",
+      baseUrl: "http://localhost:5555",
       categories: [],
       selectedCategory: "",
       showNewCategoryForm: false,

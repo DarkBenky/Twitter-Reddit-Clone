@@ -86,7 +86,7 @@ export default {
             loadingPosts: true,
             postsError: null,
             users: [],
-            baseUrl: "http://localhost:5050",
+            baseUrl: "http://localhost:5555",
             isEditing: false,
             updating: false,
             updateError: null,

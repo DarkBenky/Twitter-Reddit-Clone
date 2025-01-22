@@ -28,7 +28,7 @@ export default {
     data() {
         return {
             categories: [],
-            baseUrl: "http://localhost:5050"
+            baseUrl: "http://localhost:5555"
         };
     },
     async created() {

@@ -129,7 +129,7 @@ export default {
             loadingPost: true,
             loadingComments: false,
             error: null,
-            baseUrl: "http://localhost:5050",
+            baseUrl: "http://localhost:5555",
             newComment: "",
             isEditing: false,
             editedContent: ""
