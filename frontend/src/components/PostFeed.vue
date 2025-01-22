@@ -52,13 +52,28 @@ export default {
             postsWithMetrics: [],
             offset: 0,
             loading: false,
-            hasMorePosts: true
+            hasMorePosts: true,
+            fetchInterval: null,
         };
     },
 
     created() {
         this.fetchPosts();
         this.fetchUsers();
+    },
+
+    mounted() {
+        this.fetchPosts();
+        // Set up interval to fetch posts every 2.5 seconds
+        this.fetchInterval = setInterval(() => {
+            this.fetchPosts();
+        }, 2500);
+    },
+
+    beforeUnmount() {
+        if (this.fetchInterval) {
+            clearInterval(this.fetchInterval);
+        }
     },
 
     computed: {
@@ -133,6 +148,9 @@ export default {
         },
 
         async fetchPosts() {
+            // Only fetch if not currently loading
+            if (this.loading) return;
+            
             try {
                 this.loading = true;
                 this.offset = 0; // Reset offset when fetching initial posts
