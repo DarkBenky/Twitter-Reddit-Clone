@@ -5,16 +5,17 @@
             <div v-if="loading" class="loading">Loading...</div>
             <div v-else-if="error" class="error">{{ error }}</div>
             <div v-else>
-                <div class="user-info" v-if="!isEditing">
+                <div class="user-info" v-if="!isEditing && !isEditingPassword">
                     <h2>User Profile</h2>
                     <p><strong>ID:</strong> {{ user.idUser }}</p>
                     <p><strong>Username:</strong> {{ user.username }}</p>
                     <p><strong>Display Name:</strong> {{ user.displayName }}</p>
                     <p><strong>Email:</strong> {{ user.email }}</p>
                     <button @click="toggleEdit">Edit Profile</button>
+                    <button @click="toggleEditPassword">Change Password</button>
                 </div>
                 
-                <div class="edit-user-info" v-else>
+                <div class="edit-user-info" v-else-if="isEditing">
                     <h2>Edit Profile</h2>
                     <form @submit.prevent="updateProfile">
                         <div class="form-group">
@@ -51,6 +52,27 @@
                         <p v-if="updateError" class="error">{{ updateError }}</p>
                     </form>
                 </div>
+
+
+                <div class="edit-user-info" v-else-if="isEditingPassword">
+                    <h2>Edit Profile</h2>
+                    <form @submit.prevent="updatePassword">
+                        <div class="form-group">
+                            <label for="password">Password:</label>
+                            <input
+                                type="password"
+                                id="password"
+                                v-model="editableUser.password"
+                                required
+                            />
+                        </div>
+                        <button type="submit" :disabled="updating">
+                            {{ updating ? 'Updating...' : 'Save Changes' }}
+                        </button>
+                        <button type="button" @click="toggleEditPassword" :disabled="updating">Cancel</button>
+                        <p v-if="updateError" class="error">{{ updateError }}</p>
+                    </form>
+                </div>
             </div>
         </div>
 
@@ -83,13 +105,14 @@ export default {
             loading: true,
             error: null,
             userPosts: [],
-            loadingPosts: true,
+            loadingPosts: false,
             postsError: null,
             users: [],
             baseUrl: "http://localhost:5555",
             isEditing: false,
             updating: false,
             updateError: null,
+            isEditingPassword: false
         }
     },
 
@@ -102,6 +125,14 @@ export default {
                 this.editableUser = { ...this.user }
             }
         },
+        toggleEditPassword() {
+            this.isEditingPassword = !this.isEditingPassword
+            if (this.isEditing) {
+                // Create a copy of the user data for editing
+                this.editableUser = { ...this.user }
+            }
+        },
+
         async updateProfile() {
             this.updating = true
             this.updateError = null
@@ -123,6 +154,26 @@ export default {
                 this.updating = false
             }
         },
+        async updatePassword() {
+            this.updating = true
+            this.updateError = null
+            try {
+                const response = await axios.post(`${this.baseUrl}/updatePassword`, {
+                    userID: this.user.idUser,
+                    password: this.editableUser.password
+                })
+                // Update local user data and Vuex store
+                this.user = response.data
+                this.$store.commit('setCurrentUser', response.data)
+                this.isEditing = false
+            } catch (error) {
+                console.error('Error updating profile:', error)
+                this.updateError = error.response?.data?.error || 'Failed to update profile. Please try again.'
+            } finally {
+                this.updating = false
+            }
+        },
+
         removePost(postId) {
             this.userPosts = this.userPosts.filter(post => post.idPost !== postId);
         }

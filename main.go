@@ -662,6 +662,27 @@ func AddCategory(c echo.Context) error {
 	})
 }
 
+func UpdatePassword(c echo.Context) error {
+	type PasswordRequest struct {
+		UserID   int `json:"userID"`
+		Password string `json:"password"`
+	}
+
+	passwordReq := new(PasswordRequest)
+	if err := c.Bind(passwordReq); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid request data"})
+	}
+
+	fmt.Println(passwordReq)
+
+	query := `UPDATE users SET password = ? WHERE idUser = ?`
+	_, err := db.Exec(query, passwordReq.Password, passwordReq.UserID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, echo.Map{"message": "Password updated"})
+}
+
 func main() {
 
 	// Open a connection to the SQLite database
@@ -734,6 +755,7 @@ func main() {
 	e.GET("/categories", GetAllCategories)
 	e.GET("/category", GetCategoryByID)
 	e.POST("/addCategory", AddCategory)
+	e.POST("/updatePassword", UpdatePassword)
 	e.Logger.Fatal(e.Start(":5555"))
 
 }
