@@ -79,7 +79,13 @@
                         </li>
                     </ul>
                 </div>
-                <p v-else class="no-comments">No comments yet</p>
+                <div v-else> 
+                    <p class="no-comments">No comments yet</p>
+                    <div class="add-comment-section">
+                        <textarea v-model="newComment" placeholder="Add a comment..."></textarea>
+                        <button @click="addComment">Add Comment</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
