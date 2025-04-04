@@ -4,22 +4,17 @@
         <div class="post-header">
             <UserProfile :user="user" />
             <small class="post-date">{{ formatDate(post.created_at) }}</small>
-            
+
         </div>
-        
+
         <!-- Post Content -->
         <div class="post-content">
             <h2 @click="goToCategoryPosts(post.category)" class="category"> {{ post.category }}</h2>
             <!-- <p v >{{ post.content_text }}</p> -->
             <span v-html="formatLinks(post.content_text)"></span>
-            
+
             <div class="image-container" v-if="post.imageURL">
-                <img 
-                    :src="post.imageURL" 
-                    alt="Post Image"
-                    @error="handleImageError" 
-                    class="post-image"
-                />
+                <img :src="post.imageURL" alt="Post Image" @error="handleImageError" class="post-image" />
             </div>
 
             <div class="like-dislike">
@@ -34,6 +29,10 @@
                 </button>
                 <button @click="dislike" v-else class="not-disliked">
                     <span>Dislikes: {{ dislikes }}</span>
+                </button>
+                <button class="post-save-button" :class="{ 'post-saved': postSaved, 'post-not-saved': !postSaved }"
+                    @click="savePost">
+                    {{ postSaved ? 'Saved' : 'Save Post' }}
                 </button>
             </div>
 
@@ -67,19 +66,19 @@
                         <li v-for="comment in comments" :key="comment.idComment" class="comment">
                             <!-- Comment Header with User Info -->
                             <div class="comment-header">
-                                <UserProfile :user="getUserWithId(comment.idUser)"/>
+                                <UserProfile :user="getUserWithId(comment.idUser)" />
                             </div>
                             <div class="comment-content">
                                 <!-- <p>{{ comment.content_text }}</p> -->
                                 <span v-html="formatLinks(comment.content_text)"></span>
                                 <small class="comment-date">{{
                                     formatDate(comment.created_at)
-                                }}</small>
+                                    }}</small>
                             </div>
                         </li>
                     </ul>
                 </div>
-                <div v-else> 
+                <div v-else>
                     <p class="no-comments">No comments yet</p>
                     <div class="add-comment-section">
                         <textarea v-model="newComment" placeholder="Add a comment..."></textarea>
@@ -122,19 +121,53 @@ export default {
             commentsError: null,
             baseUrl: "http://localhost:5555",
             newComment: "",
+            postSaved: false,
         };
     },
 
     async created() {
         this.getLikesDislikes();
         this.getUserLikeDislike();
+        await this.checkPostSaved();
     },
 
     methods: {
+        async savePost() {
+            try {
+                const response = await axios.post(`${this.baseUrl}/savePost`, {
+                    postID: String(this.post.idPost),
+                    userID: String(this.$store.state.userId)
+                });
+
+                if (response.status === 200) {
+                    this.postSaved = !this.postSaved;
+                    console.log("Post saved status toggled successfully");
+                }
+            } catch (error) {
+                console.error("Error saving post:", error);
+            }
+        },
+
+        async checkPostSaved() {
+            if (this.$store.state.userId === -1) return;
+            try {
+                const response = await axios.get(`${this.baseUrl}/checkPostSaved`, {
+                    params: {
+                        postID: String(this.post.idPost),
+                        userID: String(this.$store.state.userId)
+                    }
+                });
+
+                this.postSaved = response.data.saved;
+            } catch (error) {
+                console.error("Error checking if post is saved:", error);
+            }
+        },
+
         formatLinks(text) {
             if (!text) return '';
             const urlRegex = /(https?:\/\/[^\s]+)/g;
-            return text.replace(urlRegex, url => 
+            return text.replace(urlRegex, url =>
                 `<a href="${url}" 
                     target="_blank" 
                     rel="noopener noreferrer" 
@@ -332,6 +365,48 @@ export default {
 
 
 <style scoped>
+.post-save-button {
+    padding: 0.3em 0.8em;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+}
+
+.post-saved {
+    background-color: #28a745;
+    color: white;
+}
+
+.post-saved:hover {
+    background-color: #218838;
+}
+
+.post-not-saved {
+    background-color: #e0e0e0;
+    color: #333;
+}
+
+.post-not-saved:hover {
+    background-color: #d4d4d4;
+}
+
+/* You can add a bookmark icon with pseudo-element if desired */
+.post-saved::before {
+    content: "★";
+    /* Filled star */
+    font-size: 1rem;
+}
+
+.post-not-saved::before {
+    content: "☆";
+    /* Empty star */
+    font-size: 1rem;
+}
 
 .image-container {
     width: 100%;
@@ -339,13 +414,13 @@ export default {
     margin: 1rem auto;
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     transition: transform 0.2s ease;
 }
 
 .image-container:hover {
     transform: scale(1.02);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .post-image {

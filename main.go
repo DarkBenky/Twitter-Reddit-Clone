@@ -61,6 +61,12 @@ type LikeDislike struct {
 	Like          int `json:"like"`
 }
 
+type SavedPost struct {
+	IDSavedPost int `json:"idSavedPost"`
+	IDPost      int `json:"idPost"`
+	IDUser      int `json:"idUser"`
+}
+
 type Message struct {
 	IDMessage  int    `json:"idMessage"`
 	SenderID   int    `json:"senderID"`
@@ -664,7 +670,7 @@ func AddCategory(c echo.Context) error {
 
 func UpdatePassword(c echo.Context) error {
 	type PasswordRequest struct {
-		UserID   int `json:"userID"`
+		UserID   int    `json:"userID"`
 		Password string `json:"password"`
 	}
 
@@ -683,6 +689,128 @@ func UpdatePassword(c echo.Context) error {
 	return c.JSON(http.StatusOK, echo.Map{"message": "Password updated"})
 }
 
+func addPostToSavedPosts(postID, userID int) error {
+	// Check if the post is already saved by the user
+	isSaved, err := checkIfPostIsSaved(postID, userID)
+	if err != nil {
+		return err
+	}
+
+	if isSaved {
+		// remove post from saved posts
+		query := `DELETE FROM saved_posts WHERE idPost = ? AND idUser = ?`
+		_, err := db.Exec(query, postID, userID)
+		if err != nil {
+			return err
+		}
+		return nil
+	} else {
+		// Add post to saved posts
+		query := `INSERT INTO saved_posts (idPost, idUser) VALUES (?, ?)`
+		_, err := db.Exec(query, postID, userID)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+func AddPostToSavedPosts(c echo.Context) error {
+	type SavePostRequest struct {
+		PostID string `json:"postID"`
+		UserID string `json:"userID"`
+	}
+
+	// Bind the request body to the struct
+	request := new(SavePostRequest)
+	if err := c.Bind(request); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Invalid request format",
+		})
+	}
+
+	// Check if the required fields are provided
+	if request.PostID == "" || request.UserID == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Post ID and User ID are required",
+		})
+	}
+
+	// Convert string IDs to integers
+	postIDInt, err := strconv.Atoi(request.PostID)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Invalid Post ID format",
+		})
+	}
+
+	userIDInt, err := strconv.Atoi(request.UserID)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Invalid User ID format",
+		})
+	}
+
+	err = addPostToSavedPosts(postIDInt, userIDInt)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to add post to saved posts",
+		})
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "Post added to saved posts successfully",
+	})
+}
+
+func checkIfPostIsSaved(postID, userID int) (bool, error) {
+	query := `SELECT COUNT(*) FROM saved_posts WHERE idPost = ? AND idUser = ?`
+	var count int
+	err := db.QueryRow(query, postID, userID).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func CheckIfPostIsSaved(c echo.Context) error {
+	// Get parameters from query instead of binding from request body
+	postId := c.QueryParam("postID")
+	userId := c.QueryParam("userID")
+
+	if postId == "" || userId == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Post ID and User ID are required",
+		})
+	}
+
+	// Convert string IDs to integers
+	postIDInt, err := strconv.Atoi(postId)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Invalid Post ID format",
+		})
+	}
+
+	userIDInt, err := strconv.Atoi(userId)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Invalid User ID format",
+		})
+	}
+
+	isSaved, err := checkIfPostIsSaved(postIDInt, userIDInt)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to check if post is saved",
+		})
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{
+		"saved": isSaved,
+	})
+}
+
 func main() {
 
 	// Open a connection to the SQLite database
@@ -695,12 +823,13 @@ func main() {
 	db = database
 
 	// Create tables
-	// createUsersTable(database)
-	// createPostsTable(database)
-	// createCommentsTable(database)
-	// createCategoriesTable(database)
-	// createLikesDislikesTable(database)
-	// createMessagesTable(database)
+	createUsersTable(database)
+	createSavedPostsTable(database)
+	createPostsTable(database)
+	createCommentsTable(database)
+	createCategoriesTable(database)
+	createLikesDislikesTable(database)
+	createMessagesTable(database)
 
 	// // Generate random users, posts, and comments
 	// n := 20 // Number of random entries to generate
@@ -756,6 +885,8 @@ func main() {
 	e.GET("/category", GetCategoryByID)
 	e.POST("/addCategory", AddCategory)
 	e.POST("/updatePassword", UpdatePassword)
+	e.POST("/savePost", AddPostToSavedPosts)
+	e.GET("/checkPostSaved", CheckIfPostIsSaved)
 	e.Logger.Fatal(e.Start(":5555"))
 
 }
@@ -1184,6 +1315,23 @@ func createUsersTable(db *sql.DB) {
 	}
 	statement.Exec()
 	fmt.Println("Users table created")
+}
+
+func createSavedPostsTable(db *sql.DB) {
+	fmt.Println("Creating saved_posts table")
+	createTableSQL := `CREATE TABLE IF NOT EXISTS saved_posts (
+		"idSavedPost" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,		
+		"idPost" INTEGER,
+		"idUser" INTEGER,
+		FOREIGN KEY(idPost) REFERENCES posts(idPost),
+		FOREIGN KEY(idUser) REFERENCES users(idUser)
+	);`
+	statement, err := db.Prepare(createTableSQL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	statement.Exec()
+	fmt.Println("Saved posts table created")
 }
 
 // Create Posts table
