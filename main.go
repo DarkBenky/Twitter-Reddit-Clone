@@ -56,6 +56,15 @@ type SubscribeUser struct {
 	SubscribedToID int `json:"subscribedToID"`
 }
 
+type Item struct {
+	IDItem      int    `json:"idItem"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Category    string `json:"category"`
+	Price       string `json:"price"`
+	UserID      int    `json:"userID"`
+	CreatedAt   string `json:"created_at"`
+}
 
 type Comment struct {
 	IDComment   int    `json:"idComment"`
@@ -1009,7 +1018,6 @@ func GetListOfSubscribers(c echo.Context) error {
 	// Return the list of subscribers
 	return c.JSON(http.StatusOK, subscribers)
 }
-
 
 func main() {
 
