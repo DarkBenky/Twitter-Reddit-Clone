@@ -45,7 +45,7 @@ export default {
 
     data() {
         return {
-            baseUrl: "http://localhost:5533",
+            baseUrl: "http://138.68.76.63:5533",
             messages: [],
             pollingInterval: null,
             intervalTime: 1000, // 1 second
