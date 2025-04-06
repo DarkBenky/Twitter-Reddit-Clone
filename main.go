@@ -1100,7 +1100,7 @@ func main() {
 	e.GET("/checkSubscription", CheckIfUserSubscribed)
 	e.GET("/subscribe", SubscribeORUnsubscribe)
 	e.GET("/listOfSubscribers", GetListOfSubscribers)
-	e.Logger.Fatal(e.Start(":5555"))
+	e.Logger.Fatal(e.Start(":5533"))
 
 }
 

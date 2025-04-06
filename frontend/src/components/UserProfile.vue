@@ -62,7 +62,7 @@ export default {
 
     data() {
         return {
-            url: "http://localhost:5555",
+            url: "http://localhost:5533",
             usersPosts: [],
             SubscribedToUserOfPost: false,
             subscriptionCheckInterval: null, // Add this line

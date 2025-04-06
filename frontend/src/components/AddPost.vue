@@ -87,7 +87,7 @@ export default {
   data() {
     return {
       user: {},
-      baseUrl: "http://localhost:5555",
+      baseUrl: "http://localhost:5533",
       categories: [],
       contentText: "",
       selectedCategory: "",

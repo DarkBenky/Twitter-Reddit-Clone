@@ -119,7 +119,7 @@ export default {
             comments: [],
             loadingComments: false,
             commentsError: null,
-            baseUrl: "http://localhost:5555",
+            baseUrl: "http://localhost:5533",
             newComment: "",
             postSaved: false,
         };

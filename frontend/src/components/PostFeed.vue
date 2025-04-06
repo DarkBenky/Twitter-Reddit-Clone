@@ -47,7 +47,7 @@ export default {
         return {
             posts: [],
             users: [],
-            baseUrl: "http://localhost:5555",
+            baseUrl: "http://localhost:5533",
             sortBy: 'newest',
             postsWithMetrics: [],
             offset: 0,
