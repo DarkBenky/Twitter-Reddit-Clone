@@ -21,7 +21,7 @@
         class="nav-link"
         @click="clicked"
       >
-        <UserProfile :user="user" :expanded="expanded" />
+        <UserProfile :user="user" :expanded="expanded" :enable-subscribe="false" />
       </router-link>
       <router-link v-else to="/login" class="nav-link">
         Login

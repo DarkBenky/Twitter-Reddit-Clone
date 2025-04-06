@@ -40,6 +40,23 @@ type Post struct {
 	ImageURL    string `json:"imageURL"`
 }
 
+type PostWithCategory struct {
+	IDPost      int    `json:"idPost"`
+	ContentText string `json:"content_text"`
+	CreatedAt   string `json:"created_at"`
+	UserID      int    `json:"userID"`
+	CategoryID  int    `json:"categoryID"`
+	Category    string `json:"category"`
+	ImageURL    string `json:"imageURL"`
+}
+
+type SubscribeUser struct {
+	IDSubscription int `json:"idSubscription"`
+	SubscriberID   int `json:"subscriberID"`
+	SubscribedToID int `json:"subscribedToID"`
+}
+
+
 type Comment struct {
 	IDComment   int    `json:"idComment"`
 	IDPost      int    `json:"idPost"`
@@ -291,27 +308,53 @@ func GetPosts() []Post {
 func GetPostByUserID(c echo.Context) error {
 	userID := c.QueryParam("id")
 
-	// Get all posts from the database
-	query := `SELECT idPost, content_text, created_at, userID FROM posts WHERE userID = ?`
+	// Get all posts from the database with category information
+	query := `
+        SELECT 
+            p.idPost, 
+            p.content_text, 
+            p.created_at, 
+            p.userID, 
+            p.imageURL,
+            p.categoryID,
+            COALESCE(c.name, '') as category_name
+        FROM posts p
+        LEFT JOIN categories c ON p.categoryID = c.idCategory
+        WHERE p.userID = ?
+        ORDER BY p.created_at DESC`
+
 	rows, err := db.Query(query, userID)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to query posts"})
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to query posts",
+		})
 	}
 	defer rows.Close()
 
-	var posts []Post
+	var posts []PostWithCategory
 	for rows.Next() {
-		var post Post
-		if err := rows.Scan(&post.IDPost, &post.ContentText, &post.CreatedAt, &post.UserID); err != nil {
-			return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to scan post data"})
+		var post PostWithCategory
+		if err := rows.Scan(
+			&post.IDPost,
+			&post.ContentText,
+			&post.CreatedAt,
+			&post.UserID,
+			&post.ImageURL,
+			&post.CategoryID,
+			&post.Category,
+		); err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"error": "Failed to scan post data",
+			})
 		}
 		posts = append(posts, post)
 	}
 	if err := rows.Err(); err != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Error iterating over rows"})
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Error iterating over rows",
+		})
 	}
 
-	// Return posts as JSON response
 	return c.JSON(http.StatusOK, posts)
 }
 
@@ -811,6 +854,163 @@ func CheckIfPostIsSaved(c echo.Context) error {
 	})
 }
 
+func GetUsersSavedPosts(c echo.Context) error {
+	userID := c.QueryParam("userID")
+
+	if userID == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "User ID is required",
+		})
+	}
+
+	// Updated query to join with posts table
+	query := `
+        SELECT p.idPost, p.content_text, p.imageURL, p.created_at, p.userID, p.categoryID 
+        FROM saved_posts sp
+        JOIN posts p ON sp.idPost = p.idPost
+        WHERE sp.idUser = ?`
+
+	rows, err := db.Query(query, userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to query saved posts",
+		})
+	}
+	defer rows.Close()
+
+	var savedPosts []PostWithCategory
+	for rows.Next() {
+		var post PostWithCategory
+		if err := rows.Scan(&post.IDPost, &post.ContentText, &post.ImageURL, &post.CreatedAt, &post.UserID, &post.CategoryID); err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"error": "Failed to scan saved post data",
+			})
+		}
+		savedPosts = append(savedPosts, post)
+	}
+
+	// Get category name for each post
+	for i, post := range savedPosts {
+		query := `SELECT name FROM categories WHERE idCategory = ?`
+		row := db.QueryRow(query, post.CategoryID)
+		var categoryName string
+		err := row.Scan(&categoryName)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"error": "Failed to scan category name",
+			})
+		}
+		savedPosts[i].Category = categoryName
+	}
+
+	return c.JSON(http.StatusOK, savedPosts)
+}
+
+func CheckIfUserSubscribed(c echo.Context) error {
+	subscribedToID := c.QueryParam("subscribedToID")
+	subscriberID := c.QueryParam("subscriberID")
+
+	if subscribedToID == "" || subscriberID == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "User ID and Subscriber ID are required",
+		})
+	}
+
+	query := `SELECT COUNT(*) FROM subscriptions WHERE subscriberID = ? AND subscribedToID = ?`
+	var count int
+	err := db.QueryRow(query, subscriberID, subscribedToID).Scan(&count)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to check subscription status",
+		})
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{
+		"subscribed": count > 0,
+	})
+}
+
+func SubscribeORUnsubscribe(c echo.Context) error {
+	subscribedToID := c.QueryParam("subscribedToID")
+	subscriberID := c.QueryParam("subscriberID")
+
+	if subscribedToID == "" || subscriberID == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "User ID and Subscriber ID are required",
+		})
+	}
+
+	// Check if the subscription already exists
+	query := `SELECT COUNT(*) FROM subscriptions WHERE subscriberID = ? AND subscribedToID = ?`
+	var count int
+	err := db.QueryRow(query, subscriberID, subscribedToID).Scan(&count)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to check subscription status",
+		})
+	}
+	if count > 0 {
+		// If it exists, unsubscribe
+		query = `DELETE FROM subscriptions WHERE subscriberID = ? AND subscribedToID = ?`
+		_, err := db.Exec(query, subscriberID, subscribedToID)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"error": "Failed to unsubscribe",
+			})
+		}
+	} else {
+		// If it doesn't exist, subscribe
+		query = `INSERT INTO subscriptions (subscriberID, subscribedToID) VALUES (?, ?)`
+		_, err := db.Exec(query, subscriberID, subscribedToID)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"error": "Failed to subscribe",
+			})
+		}
+	}
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "Subscription status changed successfully",
+	})
+}
+
+func GetListOfSubscribers(c echo.Context) error {
+	userID := c.QueryParam("userID")
+
+	if userID == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "User ID is required",
+		})
+	}
+
+	query := `SELECT subscribedToID FROM subscriptions WHERE subscriberID = ?`
+	rows, err := db.Query(query, userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to query subscribers",
+		})
+	}
+
+	defer rows.Close()
+	var subscribers []int
+	for rows.Next() {
+		var subscriberID int
+		if err := rows.Scan(&subscriberID); err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"error": "Failed to scan subscriber data",
+			})
+		}
+		subscribers = append(subscribers, subscriberID)
+	}
+	if err := rows.Err(); err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Error iterating over rows",
+		})
+	}
+	// Return the list of subscribers
+	return c.JSON(http.StatusOK, subscribers)
+}
+
+
 func main() {
 
 	// Open a connection to the SQLite database
@@ -830,6 +1030,7 @@ func main() {
 	createCategoriesTable(database)
 	createLikesDislikesTable(database)
 	createMessagesTable(database)
+	createSubscriptionsTable(database)
 
 	// // Generate random users, posts, and comments
 	// n := 20 // Number of random entries to generate
@@ -887,6 +1088,10 @@ func main() {
 	e.POST("/updatePassword", UpdatePassword)
 	e.POST("/savePost", AddPostToSavedPosts)
 	e.GET("/checkPostSaved", CheckIfPostIsSaved)
+	e.GET("/savedPosts", GetUsersSavedPosts)
+	e.GET("/checkSubscription", CheckIfUserSubscribed)
+	e.GET("/subscribe", SubscribeORUnsubscribe)
+	e.GET("/listOfSubscribers", GetListOfSubscribers)
 	e.Logger.Fatal(e.Start(":5555"))
 
 }
@@ -1423,6 +1628,22 @@ func createMessagesTable(db *sql.DB) {
 	}
 	statement.Exec()
 	fmt.Println("Messages table created")
+}
+
+func createSubscriptionsTable(db *sql.DB) {
+	createTableSQL := `CREATE TABLE IF NOT EXISTS subscriptions (
+		"idSubscription" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+		"subscriberID" INTEGER,
+		"subscribedToID" INTEGER,
+		FOREIGN KEY(subscriberID) REFERENCES users(idUser),
+		FOREIGN KEY(subscribedToID) REFERENCES users(idUser)
+	);`
+	statement, err := db.Prepare(createTableSQL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	statement.Exec()
+	fmt.Println("Subscriptions table created")
 }
 
 func getMessages(c echo.Context) error {

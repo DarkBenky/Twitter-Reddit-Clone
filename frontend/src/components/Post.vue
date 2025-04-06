@@ -2,9 +2,8 @@
     <div class="post">
         <!-- Post Header with User Info -->
         <div class="post-header">
-            <UserProfile :user="user" />
+            <UserProfile :user="user"/>
             <small class="post-date">{{ formatDate(post.created_at) }}</small>
-
         </div>
 
         <!-- Post Content -->
@@ -71,6 +70,7 @@
                             <div class="comment-content">
                                 <!-- <p>{{ comment.content_text }}</p> -->
                                 <span v-html="formatLinks(comment.content_text)"></span>
+                                <br />
                                 <small class="comment-date">{{
                                     formatDate(comment.created_at)
                                     }}</small>
@@ -175,6 +175,7 @@ export default {
             );
         },
         goToCategoryPosts(categoryName) {
+            console.log("Category Name:", categoryName);
             this.$router.push(`/category/${categoryName}`);
         },
         editPost() {

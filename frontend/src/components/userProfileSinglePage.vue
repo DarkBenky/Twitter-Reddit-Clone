@@ -1,102 +1,167 @@
 <template>
-    <div>
+    <div class="page-container">
         <NavBar :user="user"></NavBar>
-        <div class="user-profile">
-            <div v-if="loading" class="loading">Loading...</div>
-            <div v-else-if="error" class="error">{{ error }}</div>
-            <div v-else>
-                <div class="user-info" v-if="!isEditing && !isEditingPassword">
-                    <h2>User Profile</h2>
-                    <p><strong>ID:</strong> {{ user.idUser }}</p>
-                    <p><strong>Username:</strong> {{ user.username }}</p>
-                    <p><strong>Display Name:</strong> {{ user.displayName }}</p>
-                    <p><strong>Email:</strong> {{ user.email }}</p>
-                    <button @click="toggleEdit">Edit Profile</button>
-                    <button @click="toggleEditPassword">Change Password</button>
-                </div>
-                
-                <div class="edit-user-info" v-else-if="isEditing">
-                    <h2>Edit Profile</h2>
-                    <form @submit.prevent="updateProfile">
-                        <div class="form-group">
-                            <label for="username">Username:</label>
-                            <input
-                                type="text"
-                                id="username"
-                                v-model="editableUser.username"
-                                required
-                            />
+        
+        <!-- Main content grid -->
+        <div class="main-content">
+            <!-- Left sidebar with user info -->
+            <div class="profile-section">
+                <div v-if="loading" class="loading-indicator">Loading...</div>
+                <div v-else-if="error" class="error-message">{{ error }}</div>
+                <div v-else class="profile-card">
+                    <div class="profile-header">
+                        <div class="avatar">{{ user.displayName?.charAt(0) || '?' }}</div>
+                        <h2>{{ user.displayName }}</h2>
+                    </div>
+                    
+                    <div class="user-info" v-if="!isEditing && !isEditingPassword">
+                        <div class="info-item">
+                            <span class="label">Username:</span>
+                            <span class="value">{{ user.username }}</span>
                         </div>
-                        <div class="form-group">
-                            <label for="displayName">Display Name:</label>
-                            <input
-                                type="text"
-                                id="displayName"
-                                v-model="editableUser.displayName"
-                                required
-                            />
+                        <div class="info-item">
+                            <span class="label">Email:</span>
+                            <span class="value">{{ user.email }}</span>
                         </div>
-                        <div class="form-group">
-                            <label for="email">Email:</label>
-                            <input
-                                type="email"
-                                id="email"
-                                v-model="editableUser.email"
-                                required
-                            />
+                        
+                        <div class="action-buttons">
+                            <button class="edit-btn" @click="toggleEdit">Edit Profile</button>
+                            <button class="password-btn" @click="toggleEditPassword">Change Password</button>
                         </div>
-                        <button type="submit" :disabled="updating">
-                            {{ updating ? 'Updating...' : 'Save Changes' }}
-                        </button>
-                        <button type="button" @click="toggleEdit" :disabled="updating">Cancel</button>
-                        <p v-if="updateError" class="error">{{ updateError }}</p>
-                    </form>
-                </div>
+                    </div>
 
+                    <!-- Edit forms remain the same -->
+                    <div class="edit-user-info" v-else-if="isEditing">
+                        <h2>Edit Profile</h2>
+                        <form @submit.prevent="updateProfile">
+                            <div class="form-group">
+                                <label for="username">Username:</label>
+                                <input
+                                    type="text"
+                                    id="username"
+                                    v-model="editableUser.username"
+                                    required
+                                />
+                            </div>
+                            <div class="form-group">
+                                <label for="displayName">Display Name:</label>
+                                <input
+                                    type="text"
+                                    id="displayName"
+                                    v-model="editableUser.displayName"
+                                    required
+                                />
+                            </div>
+                            <div class="form-group">
+                                <label for="email">Email:</label>
+                                <input
+                                    type="email"
+                                    id="email"
+                                    v-model="editableUser.email"
+                                    required
+                                />
+                            </div>
+                            <button type="submit" :disabled="updating">
+                                {{ updating ? 'Updating...' : 'Save Changes' }}
+                            </button>
+                            <button type="button" @click="toggleEdit" :disabled="updating">Cancel</button>
+                            <p v-if="updateError" class="error">{{ updateError }}</p>
+                        </form>
+                    </div>
 
-                <div class="edit-user-info" v-else-if="isEditingPassword">
-                    <h2>Edit Profile</h2>
-                    <form @submit.prevent="updatePassword">
-                        <div class="form-group">
-                            <label for="password">Password:</label>
-                            <input
-                                type="password"
-                                id="password"
-                                v-model="editableUser.password"
-                                required
-                            />
-                        </div>
-                        <button type="submit" :disabled="updating">
-                            {{ updating ? 'Updating...' : 'Save Changes' }}
-                        </button>
-                        <button type="button" @click="toggleEditPassword" :disabled="updating">Cancel</button>
-                        <p v-if="updateError" class="error">{{ updateError }}</p>
-                    </form>
+                    <div class="edit-user-info" v-else-if="isEditingPassword">
+                        <h2>Edit Profile</h2>
+                        <form @submit.prevent="updatePassword">
+                            <div class="form-group">
+                                <label for="password">Password:</label>
+                                <input
+                                    type="password"
+                                    id="password"
+                                    v-model="editableUser.password"
+                                    required
+                                />
+                            </div>
+                            <button type="submit" :disabled="updating">
+                                {{ updating ? 'Updating...' : 'Save Changes' }}
+                            </button>
+                            <button type="button" @click="toggleEditPassword" :disabled="updating">Cancel</button>
+                            <p v-if="updateError" class="error">{{ updateError }}</p>
+                        </form>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="user-posts">
-            <h2>Posts</h2>
-            <div v-if="loadingPosts" class="loading">Loading...</div>
-            <div v-else-if="postsError" class="error">{{ postsError }}</div>
-            <div v-else>
-                <PostView @post-deleted="removePost" v-for="post in userPosts" :key="post.idPost" :post="post" :user="user" :users="users"></PostView>
+            <!-- Right content area -->
+            <div class="content-section">
+                <!-- Posts Section -->
+                <section class="posts-section">
+                    <h2>My Posts</h2>
+                    <div v-if="loadingPosts" class="loading-indicator">Loading...</div>
+                    <div v-else-if="postsError" class="error-message">{{ postsError }}</div>
+                    <div v-else class="posts-grid">
+                        <PostView 
+                            v-for="post in userPosts" 
+                            :key="post.idPost" 
+                            :post="post" 
+                            :user="user" 
+                            :users="users"
+                            @post-deleted="removePost"
+                            class="post-item"
+                        />
+                    </div>
+                </section>
+
+                <!-- Saved Posts Section -->
+                <section class="saved-posts-section">
+                    <h2>Saved Posts</h2>
+                    <div v-if="loadingPostsSaved" class="loading-indicator">Loading...</div>
+                    <div v-else-if="postsErrorSaved" class="error-message">{{ postsError }}</div>
+                    <div v-else class="posts-grid">
+                        <PostView 
+                            v-for="post in savedPosts" 
+                            :key="post.idPost" 
+                            :post="post" 
+                            :user="user" 
+                            :users="users"
+                            @post-deleted="removePost"
+                            class="post-item"
+                        />
+                    </div>
+                </section>
+
+                <!-- Subscriptions Section -->
+                <section class="subscriptions-section">
+                    <h2>Subscriptions</h2>
+                    <div class="subscriptions-grid">
+                        <UserProfile 
+                            v-for="idUser in subscriptions" 
+                            :key="idUser"
+                            :user="users.find(user => user.idUser === idUser)" 
+                            :compact="false" 
+                            :expanded="false" 
+                            :enableSubscribe="false"
+                            class="subscription-item"
+                        />
+                    </div>
+                </section>
             </div>
         </div>
     </div>
 </template>
 
 <script>
+
 import axios from 'axios'
 import NavBar from './NavBar.vue';
 import PostView from './Post.vue';
+import UserProfile from './UserProfile.vue';
 
 export default {
-    name: 'UserProfile',
+    name: 'UserProfileSinglePage',
     components: {
         NavBar,
-        PostView
+        PostView,
+        UserProfile
     },
     data() {
         return {
@@ -106,18 +171,51 @@ export default {
             error: null,
             userPosts: [],
             loadingPosts: false,
+            loadingPostsSaved: false,
             postsError: null,
+            postsErrorSaved: null,
             users: [],
             baseUrl: "http://localhost:5555",
             isEditing: false,
             updating: false,
             updateError: null,
-            isEditingPassword: false
+            isEditingPassword: false,
+            savedPosts: [],
+            subscriptions: [],
         }
     },
 
-
     methods: {
+        async GetListOfSubscriptions() {
+            try {
+                const response = await axios.get(`${this.baseUrl}/listOfSubscribers`, {
+                    params: { userID: this.$store.state.userId }
+                })
+                this.subscriptions = response.data
+                console.log(this.subscriptions, "subscriptions")
+            } catch (error) {
+                console.error('Error fetching subscriptions:', error)
+                this.postsError = 'Failed to load subscriptions'
+            } finally {
+                this.loadingPosts = false
+            }
+        },
+
+        async GetSavedPosts() {
+            try {
+                const response = await axios.get(`${this.baseUrl}/savedPosts`, {
+                    params: { userID: this.$store.state.userId }
+                })
+                this.savedPosts = response.data
+                console.log(this.savedPosts, "saved Posts")
+            } catch (error) {
+                console.error('Error fetching saved posts:', error)
+                this.postsErrorSaved = 'Failed to load saved posts'
+            } finally {
+                this.loadingPostsSaved = false
+            }
+        },
+
         toggleEdit() {
             this.isEditing = !this.isEditing
             if (this.isEditing) {
@@ -188,6 +286,7 @@ export default {
                 params: { id: this.$store.state.userId }
             })
             this.user = response.data
+            await this.GetSavedPosts()
         } catch (error) {
             console.error('Error fetching user data:', error)
             this.error = 'Failed to load user data'
@@ -216,6 +315,7 @@ export default {
         } catch (error) {
             console.error('Error fetching users:', error);
         }
+        this.GetListOfSubscriptions()
     },
 }
 </script>
@@ -319,5 +419,138 @@ button {
 
 button:hover {
     background-color: #45a049;
+}
+
+.page-container {
+    min-height: 100vh;
+    background-color: #f5f8fa;
+}
+
+.main-content {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 20px;
+}
+
+.profile-section {
+    position: sticky;
+    top: 20px;
+    height: fit-content;
+}
+
+.profile-card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 20px;
+}
+
+.profile-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.avatar {
+    width: 80px;
+    height: 80px;
+    background: #1da1f2;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2em;
+    margin: 0 auto 15px;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.label {
+    color: #536471;
+    font-weight: 500;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.edit-btn, .password-btn {
+    flex: 1;
+    padding: 8px;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.edit-btn {
+    background: #1da1f2;
+    color: white;
+}
+
+.password-btn {
+    background: #e8f5fe;
+    color: #1da1f2;
+}
+
+.content-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.posts-section, .saved-posts-section, .subscriptions-section {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.posts-grid {
+    display: grid;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.subscriptions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.loading-indicator {
+    text-align: center;
+    padding: 20px;
+    color: #536471;
+}
+
+.error-message {
+    color: #dc3545;
+    background: #ffebee;
+    padding: 10px;
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-section {
+        position: static;
+    }
 }
 </style>

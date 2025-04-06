@@ -4,6 +4,14 @@
             <div class="avatar" @click="moveToDMs">
                 {{ initials }}
             </div>
+
+            <div v-if="this.$store.state.userId != -1 && enableSubscribe && initials != '?'">
+                <button v-if="this.$store.state.userId != -1 && enableSubscribe"
+                    :class="['subscribe-button', { subscribed: isSubscribed }]" @click="SubscribeUnsubscribe">
+                    {{ isSubscribed ? 'Unsubscribe' : 'Subscribe' }}
+                </button>
+            </div>
+
             <div class="user-info">
                 <div v-if="!compact" class="username">
                     <p v-if="user">{{ user.displayName }}</p>
@@ -44,13 +52,20 @@ export default {
         expanded: {
             type: Boolean,
             default: false
-        }
+        },
+        enableSubscribe: {
+            type: Boolean,
+            default: true,
+            required: false
+        },
     },
 
     data() {
         return {
             url: "http://localhost:5555",
             usersPosts: [],
+            SubscribedToUserOfPost: false,
+            subscriptionCheckInterval: null, // Add this line
         }
     },
 
@@ -63,6 +78,9 @@ export default {
                 .join('')
                 .toUpperCase()
                 .slice(0, 2)
+        },
+        isSubscribed() {
+            return this.SubscribedToUserOfPost;
         }
     },
 
@@ -77,7 +95,61 @@ export default {
         }
     },
 
+    created() {
+        this.CheckIfUserIsSubscribed();
+        // Set up periodic checking every 30 seconds
+        this.subscriptionCheckInterval = setInterval(() => {
+            this.CheckIfUserIsSubscribed();
+        }, 3000);
+    },
+
+    unmounted() {
+        // Clean up the interval when component is destroyed
+        if (this.subscriptionCheckInterval) {
+            clearInterval(this.subscriptionCheckInterval);
+        }
+    },
+
     methods: {
+        async SubscribeUnsubscribe() {
+            if (this.$store.state.userId === -1) {
+                console.error("User not logged in");
+                return;
+            }
+
+            try {
+                const response = await axios.get(`${this.url}/subscribe`, {
+                    params: {
+                        subscribedToID: this.user.idUser,
+                        subscriberID: this.$store.state.userId
+                    }
+                });
+
+                // Show success message or handle response
+                console.log(response.data.message);
+                this.CheckIfUserIsSubscribed(); // Refresh subscription status
+            } catch (error) {
+                console.error("Error changing subscription status:", error);
+            }
+        },
+
+        async CheckIfUserIsSubscribed() {
+            if (this.$store.state.userId === -1 || !this.user) return;
+            try {
+                const response = await axios.get(`${this.url}/checkSubscription`, {
+                    params: {
+                        subscribedToID: this.user.idUser,
+                        subscriberID: this.$store.state.userId
+                    }
+                });
+                console.log('Subscription check response:', response.data); // Add this log
+                this.SubscribedToUserOfPost = response.data.subscribed;
+            } catch (error) {
+                console.error("Error checking subscription:", error);
+                return false;
+            }
+        },
+
         moveToDMs() {
             console.log('Moving to DMs with user:', this.user)
             this.$router.push('dm/' + this.user.idUser)
@@ -209,5 +281,49 @@ export default {
     color: #fff;
     font-size: 1.5rem;
     cursor: pointer;
+}
+
+.subscribe-button {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 100px;
+    margin: 0 8px;
+}
+
+.subscribe-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Styling for Subscribe button */
+.subscribe-button:not(.subscribed) {
+    background-color: #1da1f2;
+    color: white;
+}
+
+.subscribe-button:not(.subscribed):hover {
+    background-color: #1991da;
+}
+
+/* Styling for Unsubscribe button */
+.subscribe-button.subscribed {
+    background-color: #e8f5fe;
+    color: #1da1f2;
+    border: 1px solid #1da1f2;
+}
+
+.subscribe-button.subscribed:hover {
+    background-color: #f8f9fa;
+}
+
+/* Disabled state */
+.subscribe-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
 }
 </style>
