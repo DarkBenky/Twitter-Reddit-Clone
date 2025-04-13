@@ -4,6 +4,11 @@
             <div class="avatar" @click="moveToDMs">
                 {{ initials }}
             </div>
+            
+            <!-- Updated button with class -->
+            <button @click="showUserProfile" class="profile-button">
+                <span class="button-text">View Profile</span>
+            </button>
 
             <div v-if="this.$store.state.userId != -1 && enableSubscribe && initials != '?'">
                 <button v-if="this.$store.state.userId != -1 && enableSubscribe"
@@ -111,6 +116,12 @@ export default {
     },
 
     methods: {
+        showUserProfile() {
+            console.log('Showing user profile:', this.user)
+            // move to path user/id
+            this.$router.push(`/user/${this.user.idUser}`)
+        },
+
         async SubscribeUnsubscribe() {
             if (this.$store.state.userId === -1) {
                 console.error("User not logged in");
@@ -325,5 +336,51 @@ export default {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
+}
+
+.profile-button {
+    padding: 8px 12px;
+    border-radius: 20px;
+    border: none;
+    background-color: #f0f2f5;
+    color: #1a1a1a;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 8px;
+    font-size: 0.9rem;
+}
+
+.profile-button:hover {
+    background-color: #e4e6eb;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.profile-button:active {
+    transform: translateY(0);
+}
+
+.button-text {
+    margin-left: 4px;
+}
+
+/* For compact mode */
+.compact .profile-button {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+}
+
+/* For expanded mode (dark theme) */
+.expanded .profile-button {
+    background-color: #3a3b3c;
+    color: #e4e6eb;
+}
+
+.expanded .profile-button:hover {
+    background-color: #4a4b4c;
 }
 </style>

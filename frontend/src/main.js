@@ -14,6 +14,7 @@ import ConversationsList from './components/ConversationsList.vue'
 import RegisterPage from './components/RegisterPage.vue'
 import CategoryList from './components/CategoryList.vue'
 import CategoryPosts from './components/CategoryPosts.vue'
+import usersProfile from './components/usersProfile.vue'
 
 axios.defaults.baseURL = 'http://localhost:5533';
 axios.defaults.headers.common['Content-Type'] = 'application/json';
@@ -22,6 +23,7 @@ axios.defaults.withCredentials = true;
 const routes = [
     { path: '/', component: PostFeed },
     { path: '/user', component: userProfileSinglePage },
+    { path: '/user/:id', component: usersProfile },
     { path: '/post/:id', component: SinglePost }, 
     { path: '/add_post', component: AddPost },
     { path: '/edit/:id', component: EditPost },

@@ -451,6 +451,52 @@ func GetAllUsers(c echo.Context) error {
 	return c.JSON(http.StatusOK, users)
 }
 
+func NumberOfSubscribers(c echo.Context) error {
+    userID := c.QueryParam("userID")
+
+    if userID == "" {
+        return c.JSON(http.StatusBadRequest, echo.Map{
+            "error": "User ID is required",
+        })
+    }
+
+    query := `SELECT COUNT(*) FROM subscriptions WHERE subscribedToID = ?`
+    var count int
+    err := db.QueryRow(query, userID).Scan(&count)
+    if err != nil {
+        return c.JSON(http.StatusInternalServerError, echo.Map{
+            "error": "Failed to count subscribers",
+        })
+    }
+
+    return c.JSON(http.StatusOK, echo.Map{
+        "numberOfSubscribers": count,
+    })
+}
+
+func NumberOfSubscribeTo(c echo.Context) error {
+    userID := c.QueryParam("userID")
+
+    if userID == "" {
+        return c.JSON(http.StatusBadRequest, echo.Map{
+            "error": "User ID is required",
+        })
+    }
+
+    query := `SELECT COUNT(*) FROM subscriptions WHERE subscriberID = ?`
+    var count int
+    err := db.QueryRow(query, userID).Scan(&count)
+    if err != nil {
+        return c.JSON(http.StatusInternalServerError, echo.Map{
+            "error": "Failed to count subscriptions",
+        })
+    }
+
+    return c.JSON(http.StatusOK, echo.Map{
+        "numberOfSubscriptions": count,
+    })
+}
+
 func AddPost(c echo.Context) error {
 	type PostRequest struct {
 		ContentText string `json:"content_text"`
@@ -1100,6 +1146,8 @@ func main() {
 	e.GET("/checkSubscription", CheckIfUserSubscribed)
 	e.GET("/subscribe", SubscribeORUnsubscribe)
 	e.GET("/listOfSubscribers", GetListOfSubscribers)
+	e.GET("/numberOfSubscribers", NumberOfSubscribers)
+	e.GET("/numberOfSubscribeTo", NumberOfSubscribeTo)
 	e.Logger.Fatal(e.Start(":5533"))
 
 }
