@@ -10,3 +10,4 @@
 [X] Subscriber count
 [X] SubscribeTo count
 [ ] List of Profiles that Subscribes to User
+[ ] Check for new messages
