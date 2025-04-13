@@ -44,7 +44,7 @@ export default {
             password: "",
             loading: false,
             error: null,
-            baseUrl: "http://localhost:5533",
+            baseUrl: "http://138.68.76.63:5533",
         };
     },
     methods: {

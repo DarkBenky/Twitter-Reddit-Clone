@@ -16,7 +16,7 @@ import CategoryList from './components/CategoryList.vue'
 import CategoryPosts from './components/CategoryPosts.vue'
 import usersProfile from './components/usersProfile.vue'
 
-axios.defaults.baseURL = 'http://localhost:5533';
+axios.defaults.baseURL = 'http://138.68.76.63:5533';
 axios.defaults.headers.common['Content-Type'] = 'application/json';
 axios.defaults.withCredentials = true;
 

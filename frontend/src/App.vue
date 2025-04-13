@@ -15,7 +15,7 @@ export default {
 
   data() {
     return {
-      url: "http://localhost:5533",
+      url: "http://138.68.76.63:5533",
       Posts: [],
       activePostId: null,
       comments: [],

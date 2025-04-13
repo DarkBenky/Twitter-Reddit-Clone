@@ -101,7 +101,7 @@ export default {
             loadingPosts: true,
             postsError: null,
             users: [],
-            baseUrl: "http://localhost:5533",
+            baseUrl: "http://138.68.76.63:5533",
             isSubscribed: false,
             subscribing: false,
             subscriptionCheckInterval: null,
