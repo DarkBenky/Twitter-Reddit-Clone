@@ -7,5 +7,6 @@
 [ ] Most Commented filter for posts
 [ ] Only Subscribed Filter for Posts
 [ ] Market Place (Prax)
-[ ] Subscriber count
+[X] Subscriber count
+[X] SubscribeTo count
 [ ] List of Profiles that Subscribes to User
