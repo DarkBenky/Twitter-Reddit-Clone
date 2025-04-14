@@ -1,7 +1,7 @@
 <template>
     <div class="page-container">
         <NavBar :user="currentUser"></NavBar>
-        
+
         <!-- Main content grid -->
         <div class="main-content">
             <!-- Left sidebar with user info -->
@@ -10,37 +10,43 @@
                 <div v-else-if="error" class="error-message">{{ error }}</div>
                 <div v-else class="profile-card">
                     <div class="profile-header">
-                        <div class="avatar">{{ user.displayName?.charAt(0) || '?' }}</div>
+                        <div class="avatar">{{ user.displayName?.charAt(0) || "?" }}</div>
                         <h2>{{ user.displayName }}</h2>
-                        
+
                         <!-- Subscribe button section -->
-                        <div v-if="$store.state.userId !== -1 && $store.state.userId !== user.idUser" class="subscribe-container">
-                            <button 
-                                :class="['subscribe-button', { subscribed: isSubscribed }]" 
-                                @click="subscribeUnsubscribe"
-                                :disabled="subscribing"
-                            >
-                                {{ subscribing ? 'Processing...' : (isSubscribed ? 'Unsubscribe' : 'Subscribe') }}
+                        <div v-if="
+                            $store.state.userId !== -1 &&
+                            $store.state.userId !== user.idUser
+                        " class="subscribe-container">
+                            <button :class="['subscribe-button', { subscribed: isSubscribed }]"
+                                @click="subscribeUnsubscribe" :disabled="subscribing">
+                                {{
+                                    subscribing
+                                        ? "Processing..."
+                                        : isSubscribed
+                                            ? "Unsubscribe"
+                                : "Subscribe"
+                                }}
                             </button>
                         </div>
 
                         <!-- Styled stats cards -->
                         <div class="user-stats">
                             <div class="stat-card">
-                                <div class="stat-number">{{userPosts.length}}</div>
+                                <div class="stat-number">{{ userPosts && userPosts.length || 0 }}</div>
                                 <div class="stat-label">Posts</div>
                             </div>
                             <div class="stat-card">
-                                <div class="stat-number">{{numberOfSubscribers}}</div>
+                                <div class="stat-number">{{ numberOfSubscribers }}</div>
                                 <div class="stat-label">Subscribers</div>
                             </div>
                             <div class="stat-card">
-                                <div class="stat-number">{{numberOfSubscribeTo}}</div>
+                                <div class="stat-number">{{ numberOfSubscribeTo }}</div>
                                 <div class="stat-label">Following</div>
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="user-info">
                         <div class="info-item">
                             <span class="label">Username:</span>
@@ -60,19 +66,15 @@
                 <section class="posts-section">
                     <h2>Posts</h2>
                     <div v-if="loadingPosts" class="loading-indicator">Loading...</div>
-                    <div v-else-if="postsError" class="error-message">{{ postsError }}</div>
+                    <div v-else-if="postsError" class="error-message">
+                        {{ postsError }}
+                    </div>
                     <div v-else-if="userPosts.length === 0" class="no-posts-message">
                         No posts to display
                     </div>
                     <div v-else class="posts-grid">
-                        <PostView 
-                            v-for="post in userPosts" 
-                            :key="post.idPost" 
-                            :post="post" 
-                            :user="user" 
-                            :users="users"
-                            class="post-item"
-                        />
+                        <PostView v-for="post in userPosts" :key="post.idPost" :post="post" :user="user" :users="users"
+                            class="post-item" />
                     </div>
                 </section>
             </div>
@@ -97,7 +99,7 @@ export default {
             currentUser: {},
             loading: true,
             error: null,
-            userPosts: [],
+            userPosts: [], // Initialize as empty array instead of potentially null
             loadingPosts: true,
             postsError: null,
             users: [],
@@ -106,7 +108,8 @@ export default {
             subscribing: false,
             subscriptionCheckInterval: null,
             numberOfSubscribers: 0,
-            numberOfSubscribeTo: 0
+            numberOfSubscribeTo: 0,
+            numberOfPosts: 0
         }
     },
     methods: {
@@ -146,7 +149,7 @@ export default {
                 const response = await axios.get(`${this.baseUrl}/user`, {
                     params: { id: userId }
                 })
-                
+
                 this.user = response.data
 
                 // Fetch current logged in user if available
@@ -171,15 +174,16 @@ export default {
             try {
                 this.loadingPosts = true
                 const userId = this.$route.params.id
-                
+
                 const response = await axios.get(`${this.baseUrl}/posts/user`, {
                     params: { id: userId }
                 })
-                
-                this.userPosts = response.data
+
+                this.userPosts = response.data || [] // Ensure it's always an array
             } catch (error) {
                 console.error('Error fetching user posts:', error)
                 this.postsError = 'Failed to load posts. Please try again later.'
+                this.userPosts = [] // Reset to empty array on error
             } finally {
                 this.loadingPosts = false
             }
@@ -196,7 +200,7 @@ export default {
 
         async checkSubscriptionStatus() {
             if (this.$store.state.userId === -1 || !this.user.idUser) return
-            
+
             try {
                 const response = await axios.get(`${this.baseUrl}/checkSubscription`, {
                     params: {
@@ -204,7 +208,7 @@ export default {
                         subscriberID: this.$store.state.userId
                     }
                 })
-                
+
                 this.isSubscribed = response.data.subscribed
             } catch (error) {
                 console.error('Error checking subscription status:', error)
@@ -216,7 +220,7 @@ export default {
                 alert('You need to be logged in to subscribe')
                 return
             }
-            
+
             this.subscribing = true
             try {
                 await axios.get(`${this.baseUrl}/subscribe`, {
@@ -225,7 +229,7 @@ export default {
                         subscriberID: this.$store.state.userId
                     }
                 })
-                
+
                 // Toggle subscription status
                 this.isSubscribed = !this.isSubscribed
             } catch (error) {
@@ -246,8 +250,6 @@ export default {
         this.fetchUsers()
         this.fetchNumberOfSubscribers()
         this.fetchNumberOfSubscribeTo()
-
-        console.log("users data", this.user)
         
         // Set up periodic subscription checking
         this.subscriptionCheckInterval = setInterval(() => {
@@ -297,7 +299,7 @@ export default {
 .profile-card {
     background: white;
     border-radius: 15px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     padding: 20px;
 }
 
@@ -370,7 +372,7 @@ export default {
 
 .subscribe-button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .subscribe-button:not(.subscribed) {
@@ -408,7 +410,7 @@ export default {
     background: white;
     border-radius: 15px;
     padding: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .posts-grid {
@@ -452,13 +454,13 @@ export default {
     border-radius: 10px;
     width: 80px;
     text-align: center;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     transition: all 0.2s ease;
 }
 
 .stat-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
 }
 
 .stat-number {
@@ -479,7 +481,7 @@ export default {
     .user-stats {
         gap: 10px;
     }
-    
+
     .stat-card {
         width: 70px;
         padding: 10px;

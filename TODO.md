@@ -11,3 +11,4 @@
 [X] SubscribeTo count
 [ ] List of Profiles that Subscribes to User
 [ ] Check for new messages
+[ ] Fix dms it remembers only the last conversation not whole
