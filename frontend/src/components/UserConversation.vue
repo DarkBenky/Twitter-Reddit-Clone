@@ -35,6 +35,7 @@
 import NavBar from './NavBar.vue';
 import UserProfile from './UserProfile.vue';
 import api from '../services/api.js';
+import config from '../config.js';
 
 export default {
     name: 'UserConversation',
@@ -46,7 +47,7 @@ export default {
 
     data() {
         return {
-            baseUrl: "http://localhost:5533",
+            baseUrl:   config.apiUrl,
             messages: [],
             pollingInterval: null,
             intervalTime: 1000, // 1 second

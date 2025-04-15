@@ -42,6 +42,7 @@
 <script>
 import axios from 'axios'
 import api from '../services/api.js'
+import config from '../config.js'
 
 export default {
     name: 'UserProfile',
@@ -68,7 +69,7 @@ export default {
 
     data() {
         return {
-            url: "http://localhost:5533",
+            url: config.apiUrl,
             usersPosts: [],
             SubscribedToUserOfPost: false,
             subscriptionCheckInterval: null, // Add this line

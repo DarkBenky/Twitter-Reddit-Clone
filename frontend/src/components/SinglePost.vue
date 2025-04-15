@@ -104,6 +104,7 @@ import axios from 'axios';
 import UserProfile from './UserProfile.vue';
 import NavBar from './NavBar.vue';
 import api from '../services/api.js';
+import config from '../config.js';
 
 export default {
     name: 'SinglePost',
@@ -129,7 +130,7 @@ export default {
             loadingPost: true,
             loadingComments: false,
             error: null,
-            baseUrl: "http://localhost:5533",
+            baseUrl: config.apiUrl,
             newComment: "",
             isEditing: false,
             editedContent: ""

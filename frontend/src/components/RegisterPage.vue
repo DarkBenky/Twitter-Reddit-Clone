@@ -33,6 +33,7 @@
 
 <script>
 import axios from "axios";
+import config from "../config.js";
 
 export default {
     name: "RegisterPage",
@@ -44,7 +45,7 @@ export default {
             password: "",
             loading: false,
             error: null,
-            baseUrl: "http://localhost:5533",
+            baseUrl: config.apiUrl,
         };
     },
     methods: {

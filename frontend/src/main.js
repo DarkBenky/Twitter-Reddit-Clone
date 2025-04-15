@@ -5,7 +5,8 @@ import { createWebHistory, createRouter } from 'vue-router'
 import PostFeed from './components/PostFeed.vue'
 import { createStore } from 'vuex'
 import AddPost from './components/AddPost.vue'
-import axios from 'axios';
+import axios from 'axios'
+import config from './config'
 import SinglePost from './components/SinglePost.vue';
 import EditPost from './components/EditPost.vue';
 import LoginPage from './components/LoginPage.vue';
@@ -17,9 +18,14 @@ import CategoryPosts from './components/CategoryPosts.vue'
 import usersProfile from './components/usersProfile.vue'
 import VueCookies from 'vue-cookies'
 
-axios.defaults.baseURL = 'http://localhost:5533';
-axios.defaults.headers.common['Content-Type'] = 'application/json';
-axios.defaults.withCredentials = true;
+// Configure axios defaults
+axios.defaults.baseURL = config.apiUrl
+axios.defaults.headers.common['Content-Type'] = 'application/json'
+axios.defaults.withCredentials = true
+
+// Log current environment and API URL
+console.log(`Environment: ${config.env}`)
+console.log(`API URL: ${config.apiUrl}`)
 
 const routes = [
     { path: '/', component: PostFeed },

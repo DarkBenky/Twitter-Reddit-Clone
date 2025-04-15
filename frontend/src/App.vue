@@ -6,6 +6,7 @@
 
 <script>
 import axios from "axios";
+import config from "./config.js";
 
 export default {
   name: "App",
@@ -14,7 +15,7 @@ export default {
 
   data() {
     return {
-      url: "http://localhost:5533",
+      url: config.apiUrl,
       Posts: [],
       activePostId: null,
       comments: [],

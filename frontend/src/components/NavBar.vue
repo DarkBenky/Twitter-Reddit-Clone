@@ -15,12 +15,7 @@
       </router-link>
     </div>
     <div class="nav-right">
-      <router-link
-        v-if="this.$store.state.userId != -1"
-        to="/user"
-        class="nav-link"
-        @click="clicked"
-      >
+      <router-link v-if="this.$store.state.userId != -1" to="/user" class="nav-link" @click="clicked">
         <UserProfile :user="user" :expanded="expanded" :enable-subscribe="false" />
       </router-link>
       <router-link v-else to="/login" class="nav-link">
@@ -30,7 +25,7 @@
         Register
       </router-link>
       <div class="nav-link" v-if="this.$store.state.userId != -1">
-        <h3  @click="logout">Logout</h3>
+        <h3 @click="logout">Logout</h3>
       </div>
     </div>
   </nav>
@@ -76,16 +71,19 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
-  background-color: #222; /* Dark background for contrast */
+  background-color: #222;
+  /* Dark background for contrast */
   color: #fff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  /* Subtle shadow for depth */
 }
 
 .nav-left,
 .nav-right {
   display: flex;
   align-items: center;
-  gap: 1rem; /* Spacing between items */
+  gap: 1rem;
+  /* Spacing between items */
 }
 
 .nav-title {
@@ -97,7 +95,8 @@ export default {
 }
 
 .nav-title:hover {
-  color: #ff9800; /* Highlight effect on hover */
+  color: #ff9800;
+  /* Highlight effect on hover */
 }
 
 .nav-link {
@@ -110,8 +109,10 @@ export default {
 }
 
 .nav-link:hover {
-  background-color: #444; /* Subtle hover background */
-  color: #ff9800; /* Highlight effect on hover */
+  background-color: #444;
+  /* Subtle hover background */
+  color: #ff9800;
+  /* Highlight effect on hover */
 }
 
 .nav-right {

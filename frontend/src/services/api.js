@@ -1,8 +1,9 @@
 import axios from 'axios'
+import config from '../config'
 
-// Create axios instance
+// Create axios instance with dynamic baseURL
 const api = axios.create({
-  baseURL: 'http://localhost:5533'
+  baseURL: config.apiUrl
 })
 
 // Add request interceptor to include token with every request

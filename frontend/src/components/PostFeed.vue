@@ -34,6 +34,7 @@
 import axios from 'axios';
 import NavBar from './NavBar.vue';
 import PostView from './Post.vue';
+import config from '../config.js';
 
 export default {
     name: 'PostFeed',
@@ -47,7 +48,7 @@ export default {
         return {
             posts: [],
             users: [],
-            baseUrl: "http://localhost:5533",
+            baseUrl: config.apiUrl,
             sortBy: 'newest',
             postsWithMetrics: [],
             offset: 0,

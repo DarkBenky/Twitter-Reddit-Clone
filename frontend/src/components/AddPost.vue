@@ -77,6 +77,7 @@
 // import axios from "axios";
 import NavBar from "./NavBar.vue";
 import api from "../services/api.js";
+import config from "../config.js";
 
 export default {
   name: "AddPost",
@@ -88,7 +89,7 @@ export default {
   data() {
     return {
       user: {},
-      baseUrl: "http://localhost:5533",
+      baseUrl: config.apiUrl,
       categories: [],
       contentText: "",
       selectedCategory: "",

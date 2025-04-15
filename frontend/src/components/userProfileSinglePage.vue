@@ -156,6 +156,7 @@ import NavBar from './NavBar.vue';
 import PostView from './Post.vue';
 import UserProfile from './UserProfile.vue';
 import api from '../services/api.js';
+import config from '../config.js';
 
 export default {
     name: 'UserProfileSinglePage',
@@ -176,7 +177,7 @@ export default {
             postsError: null,
             postsErrorSaved: null,
             users: [],
-            baseUrl: "http://localhost:5533",
+            baseUrl: config.apiUrl,
             isEditing: false,
             updating: false,
             updateError: null,

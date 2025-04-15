@@ -94,6 +94,7 @@
 import axios from 'axios';
 import UserProfile from './UserProfile.vue';
 import api from '../services/api.js';
+import config from '../config.js';
 
 export default {
     name: 'PostView',
@@ -120,7 +121,7 @@ export default {
             comments: [],
             loadingComments: false,
             commentsError: null,
-            baseUrl: "http://localhost:5533",
+            baseUrl: config.apiUrl,
             newComment: "",
             postSaved: false,
         };
