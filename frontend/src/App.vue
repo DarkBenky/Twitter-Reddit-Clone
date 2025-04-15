@@ -26,6 +26,8 @@ export default {
   },
 
   created() {
+    console.log(config.apiUrl);
+
     // Use this.$cookies instead of window.$cookies
     const token = this.$cookies.get("auth_token");
     console.log("Token from cookies on load:", token);
