@@ -83,8 +83,8 @@ const app = createApp(App)
 app.use(VueCookies, {
     expires: '30d',
     path: '/',
-    secure: true,
-    sameSite: 'Strict'
+    secure: false,
+    sameSite: 'Lax',
 })
 
 app.use(router)

@@ -3,7 +3,8 @@ import config from '../config'
 
 // Create axios instance with dynamic baseURL
 const api = axios.create({
-  baseURL: config.apiUrl
+  baseURL: config.apiUrl,
+  withCredentials: true,
 })
 
 // Add request interceptor to include token with every request
