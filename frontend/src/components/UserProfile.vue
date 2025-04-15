@@ -41,6 +41,7 @@
 
 <script>
 import axios from 'axios'
+import api from '../services/api.js'
 
 export default {
     name: 'UserProfile',
@@ -129,7 +130,7 @@ export default {
             }
 
             try {
-                const response = await axios.get(`${this.url}/subscribe`, {
+                const response = await api.get(`${this.url}/subscribe`, {
                     params: {
                         subscribedToID: this.user.idUser,
                         subscriberID: this.$store.state.userId
@@ -147,7 +148,7 @@ export default {
         async CheckIfUserIsSubscribed() {
             if (this.$store.state.userId === -1 || !this.user) return;
             try {
-                const response = await axios.get(`${this.url}/checkSubscription`, {
+                const response = await api.get(`${this.url}/checkSubscription`, {
                     params: {
                         subscribedToID: this.user.idUser,
                         subscriberID: this.$store.state.userId

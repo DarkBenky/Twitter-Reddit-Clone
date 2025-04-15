@@ -155,6 +155,7 @@ import axios from 'axios'
 import NavBar from './NavBar.vue';
 import PostView from './Post.vue';
 import UserProfile from './UserProfile.vue';
+import api from '../services/api.js';
 
 export default {
     name: 'UserProfileSinglePage',
@@ -203,7 +204,7 @@ export default {
 
         async GetSavedPosts() {
             try {
-                const response = await axios.get(`${this.baseUrl}/savedPosts`, {
+                const response = await api.get(`${this.baseUrl}/savedPosts`, {
                     params: { userID: this.$store.state.userId }
                 })
                 this.savedPosts = response.data
@@ -235,7 +236,7 @@ export default {
             this.updating = true
             this.updateError = null
             try {
-                const response = await axios.put(`${this.baseUrl}/userEdit`, {
+                const response = await api.put(`${this.baseUrl}/userEdit`, {
                     id: this.user.idUser,
                     username: this.editableUser.username,
                     displayName: this.editableUser.displayName,
@@ -256,7 +257,7 @@ export default {
             this.updating = true
             this.updateError = null
             try {
-                const response = await axios.post(`${this.baseUrl}/updatePassword`, {
+                const response = await api.post(`${this.baseUrl}/updatePassword`, {
                     userID: this.user.idUser,
                     password: this.editableUser.password
                 })

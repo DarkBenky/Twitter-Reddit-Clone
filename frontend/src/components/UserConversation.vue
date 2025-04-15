@@ -31,9 +31,10 @@
 </template>
 
 <script>
-import axios from 'axios';
+// import axios from 'axios';
 import NavBar from './NavBar.vue';
 import UserProfile from './UserProfile.vue';
+import api from '../services/api.js';
 
 export default {
     name: 'UserConversation',
@@ -62,7 +63,7 @@ export default {
 
         async getMessages() {
             try {
-                const response = await axios.get(`${this.baseUrl}/messages`, {
+                const response = await api.get(`${this.baseUrl}/messages`, {
                     params: {
                         senderID: String(this.$store.state.userId),
                         receiverID: String(this.$route.params.id)
@@ -78,7 +79,7 @@ export default {
             if (!this.newMessage.trim()) return;
             
             try {
-                await axios.post(`${this.baseUrl}/sendMessage`, {
+                await api.post(`${this.baseUrl}/sendMessage`, {
                     senderID: String(this.$store.state.userId),
                     receiverID: String(this.$route.params.id),
                     content: this.newMessage

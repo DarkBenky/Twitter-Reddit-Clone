@@ -52,26 +52,34 @@
     },
     methods: {
       async handleLogin() {
-        this.loading = true
-        this.error = null
+        this.loading = true;
+        this.error = null;
         try {
           const response = await axios.post(this.baseUrl+'/login', {
             username: this.username,
             password: this.password,
-          })
-          console.log(response.data)
-          this.$store.commit('setUserId', response.data.idUser)
-          this.$store.commit('setCurrentUser', response.data)
+          });
+          
+          // Store token in cookies first
+          window.$cookies.set('auth_token', response.data.token);
+          
+          // Verify it was set
+          const storedToken = window.$cookies.get('auth_token');
+          console.log('Token stored in cookies:', storedToken);
+          
+          // Store user data in Vuex
+          this.$store.commit('setUserId', response.data.user.idUser);
+          this.$store.commit('setCurrentUser', response.data.user);
+          this.$store.commit('setToken', response.data.token);
 
-          // print stored data
-          console.log(this.$store.state.userId)
-          console.log(this.$store.state.currentUser)
-
-          this.$router.push('/')
+          console.log('User data stored in Vuex:', response.data);
+          
+          this.$router.push('/');
         } catch (err) {
-          this.error = err.response?.data?.error || 'Login failed. Please try again.'
+          console.error('Login error:', err);
+          this.error = err.response?.data?.error || 'Login failed. Please try again.';
         } finally {
-          this.loading = false
+          this.loading = false;
         }
       },
     },

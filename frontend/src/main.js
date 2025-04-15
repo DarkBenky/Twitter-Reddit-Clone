@@ -15,6 +15,7 @@ import RegisterPage from './components/RegisterPage.vue'
 import CategoryList from './components/CategoryList.vue'
 import CategoryPosts from './components/CategoryPosts.vue'
 import usersProfile from './components/usersProfile.vue'
+import VueCookies from 'vue-cookies'
 
 axios.defaults.baseURL = 'http://localhost:5533';
 axios.defaults.headers.common['Content-Type'] = 'application/json';
@@ -46,7 +47,8 @@ const store = createStore({
         return {
             userId: -1,
             currentUser: null,
-            users : []
+            users : [],
+            token: null,
         }
     },
     mutations: {
@@ -59,7 +61,10 @@ const store = createStore({
         logout(state) {
             state.currentUser = null
             state.userId = -1
-        }
+        },
+        setToken(state, token) {
+            state.token = token
+        },
     },
     getters: {
         getCurrentUser: (state) => state.currentUser
@@ -67,14 +72,15 @@ const store = createStore({
 })
 
 const app = createApp(App)
+
+// Configure Vue Cookies
+app.use(VueCookies, {
+    expires: '30d',
+    path: '/',
+    secure: true,
+    sameSite: 'Strict'
+})
+
 app.use(router)
 app.use(store)
-
-// enable CORS
-app.config.globalProperties.$http = axios
-
-
-// Provide the store to all components
-app.config.globalProperties.$store = store
-
 app.mount('#app')

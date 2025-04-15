@@ -74,8 +74,9 @@
 </template>
 
 <script>
-import axios from "axios";
+// import axios from "axios";
 import NavBar from "./NavBar.vue";
+import api from "../services/api.js";
 
 export default {
   name: "AddPost",
@@ -113,7 +114,7 @@ export default {
   methods: {
     async fetchCategories() {
       try {
-        const response = await axios.get(`${this.baseUrl}/categories`);
+        const response = await api.get(`${this.baseUrl}/categories`);
         this.categories = response.data;
       } catch (error) {
         console.error("Error fetching categories:", error);
@@ -132,7 +133,7 @@ export default {
 
     async submitPost() {
       try {
-        const response = await axios.post(`${this.baseUrl}/addPost`, {
+        const response = await api.post(`${this.baseUrl}/addPost`, {
           content_text: this.contentText.toString(),
           categoryID: this.selectedCategory.toString(),
           userID: this.$store.state.userId.toString(),
@@ -164,7 +165,7 @@ export default {
 
     async addNewCategory() {
       try {
-        const response = await axios.post(`${this.baseUrl}/addCategory`, {
+        const response = await api.post(`${this.baseUrl}/addCategory`, {
             name: this.newCategory.name,
             description: this.newCategory.description
         });

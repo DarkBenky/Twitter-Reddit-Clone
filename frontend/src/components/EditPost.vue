@@ -82,6 +82,7 @@
 <script>
 import axios from "axios";
 import NavBar from "./NavBar.vue";
+import api from "../services/api.js";
 
 export default {
   name: "EditPost",
@@ -158,7 +159,7 @@ export default {
 
     async fetchCategories() {
       try {
-        const response = await axios.get(`${this.baseUrl}/categories`);
+        const response = await api.get(`${this.baseUrl}/categories`);
         this.categories = response.data;
       } catch (error) {
         console.error("Error fetching categories:", error);
@@ -171,7 +172,7 @@ export default {
 
     async addNewCategory() {
       try {
-        const response = await axios.post(`${this.baseUrl}/addCategory`, {
+        const response = await api.post(`${this.baseUrl}/addCategory`, {
           name: this.newCategory.name,
           description: this.newCategory.description
         });
@@ -194,7 +195,7 @@ export default {
 
     async savePost() {
       try {
-        const response = await axios.put(`${this.baseUrl}/editPost`, {
+        const response = await api.put(`${this.baseUrl}/editPost`, {
           postID: String(this.$route.params.id),
           contentText: this.postContent,
           imageURL: this.imageURL,

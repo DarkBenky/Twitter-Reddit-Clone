@@ -86,6 +86,7 @@
 import axios from 'axios'
 import NavBar from './NavBar.vue'
 import PostView from './Post.vue'
+import api from '../services/api.js'
 
 export default {
     name: 'UsersProfile',
@@ -223,7 +224,7 @@ export default {
 
             this.subscribing = true
             try {
-                await axios.get(`${this.baseUrl}/subscribe`, {
+                await api.get(`${this.baseUrl}/subscribe`, {
                     params: {
                         subscribedToID: this.user.idUser,
                         subscriberID: this.$store.state.userId

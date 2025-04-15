@@ -7,9 +7,11 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-faker/faker/v4"
+	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	_ "github.com/mattn/go-sqlite3"
@@ -21,7 +23,34 @@ const (
 	testing         = true
 	testingLogin    = "test"
 	testingPassword = "test"
+	jwtSecret       = "secrete"
+	tokenExpiration = 24 * 30 * time.Hour
 )
+
+// Custom JWT claims struct
+type JwtCustomClaims struct {
+	UserID   int    `json:"userId"`
+	Username string `json:"username"`
+	jwt.StandardClaims
+}
+
+// Add this function to generate a token
+func generateToken(user User) (string, error) {
+	// Set custom claims
+	claims := &JwtCustomClaims{
+		UserID:   user.IDUser,
+		Username: user.Username,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(tokenExpiration).Unix(),
+		},
+	}
+
+	// Create token with claims
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Generate encoded token
+	return token.SignedString([]byte(jwtSecret))
+}
 
 type User struct {
 	IDUser      int    `json:"idUser"`
@@ -452,49 +481,49 @@ func GetAllUsers(c echo.Context) error {
 }
 
 func NumberOfSubscribers(c echo.Context) error {
-    userID := c.QueryParam("userID")
+	userID := c.QueryParam("userID")
 
-    if userID == "" {
-        return c.JSON(http.StatusBadRequest, echo.Map{
-            "error": "User ID is required",
-        })
-    }
+	if userID == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "User ID is required",
+		})
+	}
 
-    query := `SELECT COUNT(*) FROM subscriptions WHERE subscribedToID = ?`
-    var count int
-    err := db.QueryRow(query, userID).Scan(&count)
-    if err != nil {
-        return c.JSON(http.StatusInternalServerError, echo.Map{
-            "error": "Failed to count subscribers",
-        })
-    }
+	query := `SELECT COUNT(*) FROM subscriptions WHERE subscribedToID = ?`
+	var count int
+	err := db.QueryRow(query, userID).Scan(&count)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to count subscribers",
+		})
+	}
 
-    return c.JSON(http.StatusOK, echo.Map{
-        "numberOfSubscribers": count,
-    })
+	return c.JSON(http.StatusOK, echo.Map{
+		"numberOfSubscribers": count,
+	})
 }
 
 func NumberOfSubscribeTo(c echo.Context) error {
-    userID := c.QueryParam("userID")
+	userID := c.QueryParam("userID")
 
-    if userID == "" {
-        return c.JSON(http.StatusBadRequest, echo.Map{
-            "error": "User ID is required",
-        })
-    }
+	if userID == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "User ID is required",
+		})
+	}
 
-    query := `SELECT COUNT(*) FROM subscriptions WHERE subscriberID = ?`
-    var count int
-    err := db.QueryRow(query, userID).Scan(&count)
-    if err != nil {
-        return c.JSON(http.StatusInternalServerError, echo.Map{
-            "error": "Failed to count subscriptions",
-        })
-    }
+	query := `SELECT COUNT(*) FROM subscriptions WHERE subscriberID = ?`
+	var count int
+	err := db.QueryRow(query, userID).Scan(&count)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to count subscriptions",
+		})
+	}
 
-    return c.JSON(http.StatusOK, echo.Map{
-        "numberOfSubscriptions": count,
-    })
+	return c.JSON(http.StatusOK, echo.Map{
+		"numberOfSubscriptions": count,
+	})
 }
 
 func AddPost(c echo.Context) error {
@@ -1065,6 +1094,132 @@ func GetListOfSubscribers(c echo.Context) error {
 	return c.JSON(http.StatusOK, subscribers)
 }
 
+func ValidateToken(c echo.Context) error {
+	// Extract token from the request header
+	authHeader := c.Request().Header.Get("Authorization")
+	if authHeader == "" {
+		return c.JSON(http.StatusUnauthorized, echo.Map{
+			"error": "Missing authorization header",
+		})
+	}
+
+	// Check if the header starts with "Bearer "
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		return c.JSON(http.StatusUnauthorized, echo.Map{
+			"error": "Invalid token format",
+		})
+	}
+
+	// Extract the token
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+	// Parse and validate the token
+	token, err := jwt.ParseWithClaims(tokenString, &JwtCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+		// Validate signing method
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(jwtSecret), nil
+	})
+
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, echo.Map{
+			"error": "Invalid token: " + err.Error(),
+		})
+	}
+
+	// Check if token is valid
+	if !token.Valid {
+		return c.JSON(http.StatusUnauthorized, echo.Map{
+			"error": "Invalid token",
+		})
+	}
+
+	// Get claims
+	claims, ok := token.Claims.(*JwtCustomClaims)
+	if !ok {
+		return c.JSON(http.StatusUnauthorized, echo.Map{
+			"error": "Invalid token claims",
+		})
+	}
+
+	// Set user info in context for use in protected routes
+	c.Set("user", claims)
+
+	// query to get user info
+	query := `SELECT idUser, username, displayName, email FROM users WHERE idUser = ?`
+	row := db.QueryRow(query, claims.UserID)
+	var user User
+	if err := row.Scan(&user.IDUser, &user.Username, &user.DisplayName, &user.Email); err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to get user info",
+		})
+	}
+
+	fmt.Println("User info:", user)
+
+	// Return user info
+	return c.JSON(http.StatusOK, user)
+}
+
+// jwtMiddleware validates JWT tokens for protected routes
+func jwtMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		// Extract token from the request header
+		authHeader := c.Request().Header.Get("Authorization")
+		if authHeader == "" {
+			return c.JSON(http.StatusUnauthorized, echo.Map{
+				"error": "Missing authorization header",
+			})
+		}
+
+		// Check if the header starts with "Bearer "
+		if !strings.HasPrefix(authHeader, "Bearer ") {
+			return c.JSON(http.StatusUnauthorized, echo.Map{
+				"error": "Invalid token format",
+			})
+		}
+
+		// Extract the token
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+		// Parse and validate the token
+		token, err := jwt.ParseWithClaims(tokenString, &JwtCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+			// Validate signing method
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			return []byte(jwtSecret), nil
+		})
+
+		if err != nil {
+			return c.JSON(http.StatusUnauthorized, echo.Map{
+				"error": "Invalid token: " + err.Error(),
+			})
+		}
+
+		// Check if token is valid
+		if !token.Valid {
+			return c.JSON(http.StatusUnauthorized, echo.Map{
+				"error": "Invalid token",
+			})
+		}
+
+		// Get claims
+		claims, ok := token.Claims.(*JwtCustomClaims)
+		if !ok {
+			return c.JSON(http.StatusUnauthorized, echo.Map{
+				"error": "Invalid token claims",
+			})
+		}
+
+		// Set user info in context for use in protected routes
+		c.Set("user", claims)
+
+		return next(c)
+	}
+}
+
 func main() {
 
 	// Open a connection to the SQLite database
@@ -1109,12 +1264,21 @@ func main() {
 	e := echo.New()
 
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins:     []string{"http://localhost:8080", "http://127.0.0.1:8080", "http://138.68.76.63:8080"},
-		AllowMethods:     []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
-		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+		AllowOrigins: []string{"http://localhost:8080", "http://127.0.0.1:8080", "http://138.68.76.63:8080"},
+		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE, echo.OPTIONS},
+		AllowHeaders: []string{
+			echo.HeaderOrigin,
+			echo.HeaderContentType,
+			echo.HeaderAccept,
+			echo.HeaderAuthorization,
+			"X-Requested-With",
+		},
 		AllowCredentials: true,
+		ExposeHeaders:    []string{"Authorization"},
 	}))
 
+	// public routes
+	e.GET("/validate-token", ValidateToken)
 	e.GET("/posts", GetAllPosts)
 	e.GET("/posts/category", GetAllPostsForCategory)
 	e.GET("/comments", GetAllCommentsToPost)
@@ -1122,32 +1286,39 @@ func main() {
 	e.GET("/users", GetAllUsers)
 	e.GET("/posts/user", GetPostByUserID)
 	e.GET("/post", GetPostById)
-	e.POST("/addPost", AddPost)
-	e.POST("/addComment", AddComment)
-	e.DELETE("/deletePost", DeletePost)
-	e.PUT("/editPost", EditPost)
 	e.POST("/login", Login)
-	e.PUT("/userEdit", UpdateUser)
 	e.GET("/likesDislikes", getLikesDislikes)
 	e.GET("/userLikeDislike", getUserLikeDislikeForPost)
-	e.GET("/like", like)
-	e.GET("/dislike", dislike)
-	e.GET("/messages", getMessages)
-	e.POST("/sendMessage", SendMessages)
-	e.GET("/conversations", GetUserConversations)
 	e.POST("/register", Register)
-	e.GET("/categories", GetAllCategories)
-	e.GET("/category", GetCategoryByID)
-	e.POST("/addCategory", AddCategory)
-	e.POST("/updatePassword", UpdatePassword)
-	e.POST("/savePost", AddPostToSavedPosts)
-	e.GET("/checkPostSaved", CheckIfPostIsSaved)
-	e.GET("/savedPosts", GetUsersSavedPosts)
-	e.GET("/checkSubscription", CheckIfUserSubscribed)
-	e.GET("/subscribe", SubscribeORUnsubscribe)
 	e.GET("/listOfSubscribers", GetListOfSubscribers)
 	e.GET("/numberOfSubscribers", NumberOfSubscribers)
 	e.GET("/numberOfSubscribeTo", NumberOfSubscribeTo)
+	e.GET("/checkSubscription", CheckIfUserSubscribed)
+	e.GET("/categories", GetAllCategories)
+
+	// Create a group for protected routes
+	protected := e.Group("")
+	protected.Use(jwtMiddleware)
+
+	// protected routes
+	protected.POST("/addCategory", AddCategory)
+	protected.POST("/addPost", AddPost)
+	protected.POST("/addComment", AddComment)
+	protected.DELETE("/deletePost", DeletePost)
+	protected.PUT("/editPost", EditPost)
+	protected.PUT("/userEdit", UpdateUser)
+	protected.GET("/like", like)
+	protected.GET("/dislike", dislike)
+	protected.GET("/messages", getMessages)
+	protected.POST("/sendMessage", SendMessages)
+	protected.GET("/conversations", GetUserConversations)
+	protected.GET("/category", GetCategoryByID)
+	protected.POST("/updatePassword", UpdatePassword)
+	protected.POST("/savePost", AddPostToSavedPosts)
+	protected.GET("/checkPostSaved", CheckIfPostIsSaved)
+	protected.GET("/savedPosts", GetUsersSavedPosts)
+	protected.GET("/subscribe", SubscribeORUnsubscribe)
+
 	e.Logger.Fatal(e.Start(":5533"))
 
 }
@@ -1558,7 +1729,18 @@ func Login(c echo.Context) error {
 		})
 	}
 
-	return c.JSON(http.StatusOK, user)
+	// generate JWT token
+	token, err := generateToken(user)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to generate token",
+		})
+	}
+	// Return user data and token
+	return c.JSON(http.StatusOK, echo.Map{
+		"user":  user,
+		"token": token,
+	})
 }
 
 // Create Users table

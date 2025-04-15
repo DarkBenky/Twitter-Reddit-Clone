@@ -93,6 +93,7 @@
 <script>
 import axios from 'axios';
 import UserProfile from './UserProfile.vue';
+import api from '../services/api.js';
 
 export default {
     name: 'PostView',
@@ -133,8 +134,12 @@ export default {
 
     methods: {
         async savePost() {
+            if (this.$store.state.userId === -1) {
+                alert("Please login to save posts");
+                return;
+            }
             try {
-                const response = await axios.post(`${this.baseUrl}/savePost`, {
+                const response = await api.post(`${this.baseUrl}/savePost`, {
                     postID: String(this.post.idPost),
                     userID: String(this.$store.state.userId)
                 });
@@ -151,7 +156,7 @@ export default {
         async checkPostSaved() {
             if (this.$store.state.userId === -1) return;
             try {
-                const response = await axios.get(`${this.baseUrl}/checkPostSaved`, {
+                const response = await api.get(`${this.baseUrl}/checkPostSaved`, {
                     params: {
                         postID: String(this.post.idPost),
                         userID: String(this.$store.state.userId)
@@ -207,7 +212,7 @@ export default {
                     return;
                 }
 
-                const response = await axios.get(`${this.baseUrl}/like`, {
+                const response = await api.get(`${this.baseUrl}/like`, {
                     params: {
                         postId: this.post.idPost,
                         userId: this.$store.state.userId
@@ -230,7 +235,7 @@ export default {
                     return;
                 }
 
-                const response = await axios.get(`${this.baseUrl}/dislike`, {
+                const response = await api.get(`${this.baseUrl}/dislike`, {
                     params: {
                         postId: this.post.idPost,
                         userId: this.$store.state.userId
@@ -250,7 +255,7 @@ export default {
             try {
                 if (this.$store.state.userId === -1) return;
 
-                const response = await axios.get(`${this.baseUrl}/userLikeDislike`, {
+                const response = await api.get(`${this.baseUrl}/userLikeDislike`, {
                     params: {
                         idPost: this.post.idPost,
                         userID: this.$store.state.userId
@@ -275,7 +280,7 @@ export default {
         async deletePost(event) {
             event.stopPropagation(); // Prevent event bubbling
             try {
-                const response = await axios.delete(`${this.baseUrl}/deletePost`, {
+                const response = await api.delete(`${this.baseUrl}/deletePost`, {
                     data: {
                         postID: String(this.post.idPost)
                     }
@@ -299,7 +304,7 @@ export default {
 
             try {
                 // Make a POST request to the backend with the new comment data
-                const response = await axios.post(`${this.baseUrl}/addComment`, {
+                const response = await api.post(`${this.baseUrl}/addComment`, {
                     postID: String(this.post.idPost),
                     userID: String(this.$store.state.userId),
                     contentText: this.newComment

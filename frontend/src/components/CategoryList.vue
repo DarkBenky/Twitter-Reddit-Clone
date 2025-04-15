@@ -17,8 +17,9 @@
 </template>
 
 <script>
-import axios from 'axios';
+// import axios from 'axios';
 import NavBar from './NavBar.vue';
+import api from '../services/api.js';
 
 export default {
     name: 'CategoryList',
@@ -37,7 +38,7 @@ export default {
     methods: {
         async fetchCategories() {
             try {
-                const response = await axios.get(`${this.baseUrl}/categories`);
+                const response = await api.get(`${this.baseUrl}/categories`);
                 this.categories = response.data;
             } catch (error) {
                 console.error('Error fetching categories:', error);

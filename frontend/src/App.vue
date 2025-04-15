@@ -5,13 +5,12 @@
 </template>
 
 <script>
-import axios from 'axios'
+import axios from "axios";
 
 export default {
-  name: 'App',
+  name: "App",
 
-  components: {
-  },
+  components: {},
 
   data() {
     return {
@@ -22,18 +21,43 @@ export default {
       loadingComments: false,
       commentsError: null,
       Users: [],
+    };
+  },
+
+  created() {
+    // Use this.$cookies instead of window.$cookies
+    const token = this.$cookies.get("auth_token");
+    console.log("Token from cookies on load:", token);
+
+    if (token) {
+        axios
+            .get(`${this.url}/validate-token`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then((response) => {
+                console.log("Token validation response:", response.data);
+                this.$store.commit("setUserId", response.data.idUser);
+                this.$store.commit("setCurrentUser", response.data);
+                this.$store.commit("setToken", token);
+            })
+            .catch((error) => {
+                console.error("Token validation failed:", error);
+                this.$store.commit("setUserId", -1);
+                this.$store.commit("setCurrentUser", null);
+                this.$store.commit("setToken", null);
+                this.$cookies.remove("auth_token");
+            });
+    } else {
+        console.log("No token found in cookies");
     }
   },
 
-  // created() {
-  //   this.GetAllPosts()
-  //   this.GetAllUsers()
-  // },
-
   methods: {
-
     getUserWithId(id) {
-      return this.Users.find(user => user.idUser === id)
+      return this.Users.find((user) => user.idUser === id);
     },
 
     // async GetAllPosts() {
@@ -55,43 +79,43 @@ export default {
 
     async toggleComments(postId) {
       if (this.activePostId === postId) {
-        this.activePostId = null
-        this.comments = []
+        this.activePostId = null;
+        this.comments = [];
       } else {
-        this.activePostId = postId
-        await this.fetchComments(postId)
+        this.activePostId = postId;
+        await this.fetchComments(postId);
       }
     },
 
     async fetchComments(postId) {
-      this.loadingComments = true
-      this.commentsError = null
+      this.loadingComments = true;
+      this.commentsError = null;
 
       try {
         const response = await axios.get(`${this.url}/comments`, {
           params: {
-            idPost: postId
-          }
-        })
-        this.comments = response.data
+            idPost: postId,
+          },
+        });
+        this.comments = response.data;
       } catch (error) {
-        this.commentsError = 'Failed to load comments: ' + error.message
-        console.error('Error fetching comments:', error)
+        this.commentsError = "Failed to load comments: " + error.message;
+        console.error("Error fetching comments:", error);
       } finally {
-        this.loadingComments = false
+        this.loadingComments = false;
       }
     },
 
     formatDate(dateString) {
       try {
-        const date = new Date(dateString)
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString()
+        const date = new Date(dateString);
+        return date.toLocaleDateString() + " " + date.toLocaleTimeString();
       } catch (err) {
-        return dateString
+        return dateString;
       }
-    }
-  }
-}
+    },
+  },
+};
 </script>
 
 <style scoped>
