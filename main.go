@@ -62,21 +62,27 @@ type User struct {
 
 type Post struct {
 	IDPost      int    `json:"idPost"`
-	ContentText string `json:"content_text"`
-	CreatedAt   string `json:"created_at"`
 	UserID      int    `json:"userID"`
 	CategoryID  int    `json:"categoryID"`
 	ImageURL    string `json:"imageURL"`
+	ContentText string `json:"content_text"`
+	CreatedAt   string `json:"created_at"`
+}
+
+type Image struct {
+	IDImage  int    `json:"idImage"`
+	PostID   int    `json:"postID"`
+	ImageURL string `json:"imageURL"`
 }
 
 type PostWithCategory struct {
 	IDPost      int    `json:"idPost"`
-	ContentText string `json:"content_text"`
-	CreatedAt   string `json:"created_at"`
 	UserID      int    `json:"userID"`
 	CategoryID  int    `json:"categoryID"`
 	Category    string `json:"category"`
 	ImageURL    string `json:"imageURL"`
+	ContentText string `json:"content_text"`
+	CreatedAt   string `json:"created_at"`
 }
 
 type SubscribeUser struct {
@@ -87,12 +93,12 @@ type SubscribeUser struct {
 
 type Item struct {
 	IDItem      int    `json:"idItem"`
+	UserID      int    `json:"userID"`
+	CreatedAt   string `json:"created_at"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Category    string `json:"category"`
 	Price       string `json:"price"`
-	UserID      int    `json:"userID"`
-	CreatedAt   string `json:"created_at"`
 }
 
 type Comment struct {
@@ -131,14 +137,14 @@ type Message struct {
 }
 
 func GetAllPosts(c echo.Context) error {
-	// Keep struct definition
 	type Post struct {
-		IDPost      int    `json:"idPost"`
-		ContentText string `json:"content_text"`
-		CreatedAt   string `json:"created_at"`
-		UserID      int    `json:"userID"`
-		Category    string `json:"category"`
-		ImageURL    string `json:"imageURL"`
+		IDPost          int      `json:"idPost"`
+		ContentText     string   `json:"content_text"`
+		CreatedAt       string   `json:"created_at"`
+		UserID          int      `json:"userID"`
+		Category        string   `json:"category"`
+		ImageURL        string   `json:"imageURL"`
+		SecondaryImages []string `json:"secondaryImages"`
 	}
 
 	offset := c.QueryParam("offset")
@@ -152,7 +158,6 @@ func GetAllPosts(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Invalid offset parameter"})
 	}
 
-	// Reorder SELECT to match struct field order
 	query := `
         SELECT 
             p.idPost,
@@ -188,6 +193,36 @@ func GetAllPosts(c echo.Context) error {
 			log.Printf("Scan error: %v", err)
 			return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to scan post data"})
 		}
+
+		post.SecondaryImages = []string{}
+
+		// Get secondary images for this post
+		imagesQuery := `SELECT imageURL FROM images WHERE postID = ?`
+		imageRows, err := db.Query(imagesQuery, post.IDPost)
+		if err != nil {
+			log.Printf("Secondary images query error: %v", err)
+			return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to query secondary images"})
+		}
+
+		// Add each secondary image to the post
+		for imageRows.Next() {
+			var imageURL string
+			if err := imageRows.Scan(&imageURL); err != nil {
+				imageRows.Close()
+				log.Printf("Image scan error: %v", err)
+				return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to scan image data"})
+			}
+			post.SecondaryImages = append(post.SecondaryImages, imageURL)
+		}
+		imageRows.Close()
+
+		fmt.Println("Secondary images for post ID count:", len(post.SecondaryImages))
+
+		if err = imageRows.Err(); err != nil {
+			log.Printf("Image rows iteration error: %v", err)
+			return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Error iterating through images"})
+		}
+
 		posts = append(posts, post)
 	}
 
@@ -346,7 +381,6 @@ func GetPosts() []Post {
 func GetPostByUserID(c echo.Context) error {
 	userID := c.QueryParam("id")
 
-	// Get all posts from the database with category information
 	query := `
         SELECT 
             p.idPost, 
@@ -528,10 +562,11 @@ func NumberOfSubscribeTo(c echo.Context) error {
 
 func AddPost(c echo.Context) error {
 	type PostRequest struct {
-		ContentText string `json:"content_text"`
-		ImageURL    string `json:"imageURL"` // Added
-		UserID      string `json:"userID"`
-		CategoryID  string `json:"categoryID"`
+		ContentText     string   `json:"content_text"`
+		ImageURL        string   `json:"imageURL"`
+		UserID          string   `json:"userID"`
+		CategoryID      string   `json:"categoryID"`
+		SecondaryImages []string `json:"secondaryImages"`
 	}
 
 	postReq := new(PostRequest)
@@ -551,7 +586,27 @@ func AddPost(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
 	}
-	return c.JSON(http.StatusOK, echo.Map{"message": "Post created"})
+
+	// get id of latest post
+	var postID int
+	query = `SELECT idPost FROM posts WHERE content_text = ? AND userID = ? ORDER BY created_at DESC LIMIT 1`
+	err = db.QueryRow(query, postReq.ContentText, postReq.UserID).Scan(&postID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+	}
+
+	// Insert secondary images if provided
+	if len(postReq.SecondaryImages) > 0 {
+		for _, imageURL := range postReq.SecondaryImages {
+			query := `INSERT INTO images (postID, imageURL) VALUES (?, ?)`
+			_, err := db.Exec(query, postID, imageURL)
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, echo.Map{"error": err.Error()})
+			}
+		}
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{"message": "Post created", "post": postReq})
 }
 
 func AddComment(c echo.Context) error {
@@ -710,12 +765,13 @@ func DeletePost(c echo.Context) error {
 
 func GetPostById(c echo.Context) error {
 	type Post struct {
-		IDPost      int    `json:"idPost"`
-		ContentText string `json:"content_text"`
-		CreatedAt   string `json:"created_at"`
-		UserID      int    `json:"userID"`
-		Category    string `json:"category"`
-		ImageURL    string `json:"imageURL"` // Added ImageURL field
+		IDPost          int      `json:"idPost"`
+		ContentText     string   `json:"content_text"`
+		CreatedAt       string   `json:"created_at"`
+		UserID          int      `json:"userID"`
+		Category        string   `json:"category"`
+		ImageURL        string   `json:"imageURL"`
+		SecondaryImages []string `json:"secondaryImages"`
 	}
 
 	postID := c.QueryParam("id")
@@ -728,7 +784,7 @@ func GetPostById(c echo.Context) error {
                COALESCE(c.name, '') as category_name,
                COALESCE(p.imageURL, '') as imageURL
         FROM posts p 
-        LEFT JOIN categories c ON p.categoryID = c.idCategory 
+        LEFT JOIN categories c ON p.categoryID = c.idCategory
         WHERE p.idPost = ?`
 
 	var post Post
@@ -738,7 +794,7 @@ func GetPostById(c echo.Context) error {
 		&post.CreatedAt,
 		&post.UserID,
 		&post.Category,
-		&post.ImageURL, // Added ImageURL scan
+		&post.ImageURL,
 	)
 
 	if err == sql.ErrNoRows {
@@ -746,6 +802,31 @@ func GetPostById(c echo.Context) error {
 	}
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to scan post data"})
+	}
+
+	imagesQuery := `
+        SELECT imageURL FROM images 
+        WHERE postID = ?`
+
+	rows, err := db.Query(imagesQuery, postID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to query secondary images"})
+	}
+	defer rows.Close()
+
+	post.SecondaryImages = []string{}
+
+	// Add each secondary image to the post
+	for rows.Next() {
+		var imageURL string
+		if err := rows.Scan(&imageURL); err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to scan image data"})
+		}
+		post.SecondaryImages = append(post.SecondaryImages, imageURL)
+	}
+
+	if err = rows.Err(); err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Error while iterating through images"})
 	}
 
 	return c.JSON(http.StatusOK, post)
@@ -1233,6 +1314,7 @@ func main() {
 
 	// Create tables
 	createUsersTable(database)
+	CreateImagesTable(database)
 	createSavedPostsTable(database)
 	createPostsTable(database)
 	createCommentsTable(database)
@@ -1758,6 +1840,21 @@ func createUsersTable(db *sql.DB) {
 	}
 	statement.Exec()
 	fmt.Println("Users table created")
+}
+
+func CreateImagesTable(db *sql.DB) {
+	image := `CREATE TABLE IF NOT EXISTS images (
+		"idImage" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+		"imageURL" TEXT,
+		"postID" INTEGER,
+		FOREIGN KEY(postID) REFERENCES posts(idPost)
+	);`
+	statement, err := db.Prepare(image)
+	if err != nil {
+		log.Fatal(err)
+	}
+	statement.Exec()
+	fmt.Println("Images table created")
 }
 
 func createSavedPostsTable(db *sql.DB) {

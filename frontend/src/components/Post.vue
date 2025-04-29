@@ -12,8 +12,25 @@
             <!-- <p v >{{ post.content_text }}</p> -->
             <span v-html="formatLinks(post.content_text)"></span>
 
-            <div class="image-container" v-if="post.imageURL">
-                <img :src="post.imageURL" alt="Post Image" @error="handleImageError" class="post-image" />
+            <div class="image-container" v-if="post.imageURL || currentMainImage">
+                <img :src="currentMainImage || post.imageURL" alt="Post Image" @error="handleImageError" class="post-image" />
+            </div>
+
+            <div v-if="post.secondaryImages && post.secondaryImages.length > 0" class="secondary-images-section">
+                <h3 class="secondary-images-title">Additional Images</h3>
+                <div class="secondary-images-grid">
+                    <div v-for="(image, index) in post.secondaryImages" :key="index" 
+                         class="secondary-image-container" 
+                         @click="swapMainImage(image)">
+                        <img :src="image" alt="Secondary Image" @error="handleImageError" class="secondary-image" />
+                        <div class="image-click-overlay">
+                            <span class="image-click-icon">Open</span>
+                        </div>
+                    </div>
+                </div>
+                <div v-if="currentMainImage" class="reset-main-image">
+                    <button @click="resetMainImage">Reset to Original Image</button>
+                </div>
             </div>
 
             <div class="like-dislike">
@@ -124,6 +141,7 @@ export default {
             baseUrl: config.apiUrl,
             newComment: "",
             postSaved: false,
+            currentMainImage: null,
         };
     },
 
@@ -134,6 +152,18 @@ export default {
     },
 
     methods: {
+        async GetSecondaryImages(){
+            // Existing code if any
+        },
+
+        swapMainImage(imageUrl) {
+            this.currentMainImage = imageUrl;
+        },
+
+        resetMainImage() {
+            this.currentMainImage = null;
+        },
+
         async savePost() {
             if (this.$store.state.userId === -1) {
                 alert("Please login to save posts");
@@ -417,7 +447,7 @@ export default {
 
 .image-container {
     width: 100%;
-    max-width: 200px;
+    max-width: 500px;
     margin: 1rem auto;
     border-radius: 8px;
     overflow: hidden;
@@ -639,5 +669,88 @@ export default {
 .toggle-edit:hover {
     background-color: #4CAF50;
     color: white;
+}
+
+/* Secondary Images Styling */
+.secondary-images-section {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: #f5f5f5;
+    border-radius: 8px;
+}
+
+.secondary-images-title {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    color: #333;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 0.5rem;
+}
+
+.secondary-images-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.secondary-image-container {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    aspect-ratio: 1/1;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+    cursor: pointer;
+}
+
+.secondary-image-container:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.secondary-image-container:hover .image-click-overlay {
+    opacity: 1;
+}
+
+.image-click-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.3);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.image-click-icon {
+    color: white;
+    font-size: 1.5rem;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+}
+
+.reset-main-image {
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.reset-main-image button {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.reset-main-image button:hover {
+    background-color: #5a6268;
 }
 </style>

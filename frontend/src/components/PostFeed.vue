@@ -161,6 +161,7 @@ export default {
                     }
                 });
                 const posts = response.data;
+                console.log('Fetched posts:', posts);
                 
                 // Fetch metrics for each post
                 this.postsWithMetrics = await Promise.all(

@@ -8,28 +8,35 @@
         <textarea id="contentText" v-model="contentText" required></textarea>
 
         <label for="imageURL">Image URL:</label>
-        <input 
-          id="imageURL" 
-          v-model="imageURL" 
-          type="url" 
-          placeholder="Enter image URL"
-        >
+        <input id="imageURL" v-model="imageURL" type="url" placeholder="Enter image URL">
 
         <!-- Image Preview -->
         <div v-if="imageURL" class="image-preview-container">
-          <img 
-            :src="imageURL" 
-            alt="Preview" 
-            @error="handleImageError"
-            class="image-preview"
-          >
-          <button 
-            type="button" 
-            class="clear-image" 
-            @click="clearImage"
-          >
+          <img :src="imageURL" alt="Preview" @error="handleImageError" class="image-preview">
+          <button type="button" class="clear-image" @click="clearImage">
             Clear Image
           </button>
+        </div>
+
+        <!-- add secondary images -->
+        <div class="secondary-images-section">
+          <label for="secondaryImageURL">Secondary Images:</label>
+          <div class="secondary-image-input">
+            <input id="secondaryImageURL" v-model="secondaryImageURL" type="url" placeholder="Enter image URL">
+            <button type="button" class="add-image-btn" @click="addSecondaryImage">
+              Add Image
+            </button>
+          </div>
+
+          <!-- preview of secondary images -->
+          <div class="secondary-images-grid" v-if="secondaryImages.length > 0">
+            <div v-for="(secondaryImage, index) in secondaryImages" :key="index" class="secondary-image-container">
+              <img :src="secondaryImage" alt="Secondary image" @error="handleSecondaryImageError($event, index)" class="secondary-image-preview">
+              <button type="button" class="remove-secondary-image" @click="removeSecondaryImage(index)">
+                ✖
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="category-section">
@@ -40,23 +47,16 @@
               {{ category.name }}
             </option>
           </select>
-          
+
           <button type="button" @click="toggleNewCategory" class="toggle-category-btn">
             {{ showNewCategoryForm ? 'Select Existing Category' : 'Add New Category' }}
           </button>
 
           <!-- New Category Form -->
           <div v-if="showNewCategoryForm" class="new-category-form">
-            <input 
-              v-model="newCategory.name" 
-              placeholder="Category Name"
-              class="category-input"
-            />
-            <textarea 
-              v-model="newCategory.description" 
-              placeholder="Category Description"
-              class="category-description"
-            ></textarea>
+            <input v-model="newCategory.name" placeholder="Category Name" class="category-input" />
+            <textarea v-model="newCategory.description" placeholder="Category Description"
+              class="category-description"></textarea>
             <button type="button" @click="addNewCategory" class="add-category-btn">
               Create Category
             </button>
@@ -101,7 +101,9 @@ export default {
       newCategory: {
         name: '',
         description: ''
-      }
+      },
+      secondaryImages: [],
+      secondaryImageURL: "",
     };
   },
 
@@ -113,6 +115,17 @@ export default {
   },
 
   methods: {
+    addSecondaryImage() {
+      if (this.secondaryImageURL) {
+        this.secondaryImages.push(this.secondaryImageURL);
+        this.secondaryImageURL = "";
+      }
+    },
+
+    removeSecondaryImage(index) {
+      this.secondaryImages.splice(index, 1);
+    },
+
     async fetchCategories() {
       try {
         const response = await api.get(`${this.baseUrl}/categories`);
@@ -138,15 +151,17 @@ export default {
           content_text: this.contentText.toString(),
           categoryID: this.selectedCategory.toString(),
           userID: this.$store.state.userId.toString(),
-          imageURL: this.imageURL
+          imageURL: this.imageURL,
+          secondaryImages: this.secondaryImages
         });
         console.log(response.data);
+        console.log("number of secondary images: ", this.secondaryImages.length);
         this.message = "Post added successfully!";
         this.success = true;
         this.contentText = "";
         this.selectedCategory = "";
         this.imageURL = "";
-        
+
         setTimeout(() => {
           this.$router.push("/");
         }, 1500);
@@ -167,21 +182,21 @@ export default {
     async addNewCategory() {
       try {
         const response = await api.post(`${this.baseUrl}/addCategory`, {
-            name: this.newCategory.name,
-            description: this.newCategory.description
+          name: this.newCategory.name,
+          description: this.newCategory.description
         });
 
         if (response.status === 200) {
-            // Update categories list
-            await this.fetchCategories();
-            // Select the new category
-            this.selectedCategory = response.data.categoryId;
-            // Reset form
-            this.showNewCategoryForm = false;
-            this.newCategory = { name: '', description: '' };
-            // Show success message
-            this.message = "Category added successfully";
-            this.success = true;
+          // Update categories list
+          await this.fetchCategories();
+          // Select the new category
+          this.selectedCategory = response.data.categoryId;
+          // Reset form
+          this.showNewCategoryForm = false;
+          this.newCategory = { name: '', description: '' };
+          // Show success message
+          this.message = "Category added successfully";
+          this.success = true;
         }
       } catch (error) {
         console.error('Error adding category:', error);
@@ -260,7 +275,7 @@ button:hover {
   max-width: 100%;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .image-preview {
@@ -278,7 +293,7 @@ button:hover {
   position: absolute;
   top: 10px;
   right: 10px;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0, 0, 0, 0.6);
   color: white;
   border: none;
   border-radius: 4px;
@@ -287,7 +302,7 @@ button:hover {
 }
 
 .clear-image:hover {
-  background: rgba(0,0,0,0.8);
+  background: rgba(0, 0, 0, 0.8);
 }
 
 .category-section {
@@ -338,5 +353,79 @@ button:hover {
 
 .add-category-btn:hover {
   background: #45a049;
+}
+
+/* Secondary Images Section */
+.secondary-images-section {
+  margin: 1.5rem 0;
+}
+
+.secondary-image-input {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.secondary-image-input input {
+  flex: 1;
+}
+
+.add-image-btn {
+  margin-top: 0;
+  white-space: nowrap;
+  background-color: #4361ee;
+}
+
+.add-image-btn:hover {
+  background-color: #3a56d4;
+}
+
+.secondary-images-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.secondary-image-container {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  aspect-ratio: 1/1;
+}
+
+.secondary-image-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.secondary-image-preview.image-error {
+  display: none;
+}
+
+.remove-secondary-image {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(255, 0, 0, 0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.remove-secondary-image:hover {
+  background: rgba(255, 0, 0, 0.9);
 }
 </style>
